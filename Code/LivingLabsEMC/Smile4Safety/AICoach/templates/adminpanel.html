@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<h1>Administration Panel</h1>
+<ul class="sidebar-nav">
+          <li><a href="{% url 'createmodel' %}">Create Model</a></li>
+          <li><a href="{% url 'searchmodel' %}">View/Search Model</a></li>
+</ul>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<h1 xmlns:x-on="http://www.w3.org/1999/xhtml">Create Model</h1>
+ <p>On this interface, you can add Combination Functions.</p>
+<p>However, to use it, please contact administrator</p>
+<!--Code added to handle 403 - forbidden and CSRF undefined issue-->
+{% csrf_token %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+ <div x-data="library()"  x-init="initlibrary()">
+     <table>
+         <tr>
+             <td> Short Name</td>
+             <td> Full Name </td>
+             <td> Number of Parameters </td>
+             <td> Parameters Names </td>
+         </tr>
+         <tr>
+             <td>
+                 <input type="text" x-model="func.name" class="form-control mr-3" size="3"  x-on:change.debouce="checkname()">
+             </td>
+             <td>
+                 <input type="text" x-model="func.fullname" class="form-control mr-3" size="3">
+             </td>
+             <td>
+                 <input type="text" x-model="func.numberOfPossibleParams" class="form-control mr-3" size="3">
+             </td>
+             <td>
+                 <input type="text" x-model="func.paramNames" class="form-control mr-3" size="3">
+             </td>
+
+         </tr>
+         <template x-for = "cof in combinationfuncs">
+             <tr>
+                <td>
+                    <span x-text = cof.name></span>
+                </td>
+                <td>
+                    <span x-text = cof.fullname></span>
+                </td>
+                <td>
+                    <span x-text = cof.numberOfPossibleParams></span>
+                </td>
+                <td>
+                    <span x-text = cof.paramNames></span>
+                </td>
+
+             </tr>
+
+         </template>
+     </table>
+
+ </div>
+
+<script>
+
+ function library(){
+        return{
+        combinationfuncs:[],
+        func:{name:'', fullname:'', numberOfPossibleParams:'',paramNames:''},
+        checkname(){
+        console.log('name')
+        },
+        initlibrary(){
+            //combination functions initialization
+            json_data = JSON.parse("{{data|escapejs}}")
+            console.log(json_data)
+            this.combinationfuncs = []
+
+            for(var i in json_data){
+                this.combinationfuncs.push(json_data[i])
+            }
+
+        }//initiate library
+        }//returm
+ }
+ </script>
+{% endblock %}

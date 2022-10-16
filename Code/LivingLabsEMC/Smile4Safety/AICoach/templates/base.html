@@ -1,10 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Smile4Safety</title>
-</head>
+  {% block title %}<title>SAFECoach</title>{% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+  <!-- Add additional CSS in static file -->
+
+  {% load static %}
+
+   <!-- by usman row justify-content-start state-->
+<style>
+        .state {
+            height: 300px;
+            overflow-y: scroll;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .sectionhr{
+            border: 1px dotted #ff0000;
+            border-style: none none dotted;
+            color: #fff;
+            background-color: #fff;
+        }
+
+        .baselevel{
+            background-color:#D6EAF8;
+        }
+
+        .firstlevel{
+            background-color:#D1F2EB;
+        }
+
+        .secondlevel{
+            background-color:#FCF3CF;
+        }
+
+
+        .right {
+          text-align: right;
+        }
+
+        .center{
+            text-align: center;
+        }
+</style>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<!-- added earlier-->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
+
+
+  </head>
 <body>
-{% block page_content %}{% endblock %}
+  {% block page_content %}{% endblock %}
 </body>
 </html>
