@@ -1,11 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-action page :
-{{ data }}
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block page_content %}
+
+
+<div x-data="coachSpecification()" x-init="loadModel()" class="container py-5">
+
+    <table>
+            <tr>
+                <td>
+                    <span class="input-group-text" id="basic-addon3" x-text="'Name of the Model:' +'\xa0\xa0\xa0\xa0\xa0\xa0\xa0'+ name"> </span>
+                </td>
+
+            </tr>
+            <tr><td><br></td></tr>
+
+            <tr>
+                <template x-for="(bstate,bindex) in baseLevel.states" :key="bindex">
+                <table>
+                    <tr class="baselevel">
+
+                            <td>
+                                <span id="bstate.id" x-text="bstate.id"></span>
+                            </td>
+                            <!-- State name with tooltip-->
+                            <td>
+                                <div x-data="{ message: bstate.name }">
+                                    <template x-ref="template">
+                                        <p x-text="message"></p>
+                                    </template>
+                                    <input type="text" x-tooltip="{
+                                        content: () => $refs.template.innerHTML,
+                                        allowHTML: true,
+                                        appendTo: $root
+                                        }" class="form-control mr-3" size="10" x-model="bstate.name" readonly>
+                                    </input>
+                                </div>
+                            </td>
+                            <!-- data for the Coach -->
+                            <td>
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <select class="form-select" x-on:change="showandSetParameters(bindex)">
+                                                <option value="0" hidden selected> -- select an option -- </option>
+                                                    <option value="intent"> Add Intent</option>
+                                                    <option value="response"> Add Response</option>
+
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    </table>
+                            </td>
+
+
+
+
+                    </tr>
+                </table>
+                </template>
+            </tr>
+        <br>
+            <tr>
+                <td>
+                    <button x-on:click="saveRole()" class="btn btn-success"> Save </button>
+                    <button x-on:click="clearForm()" class="btn btn-danger"> Clear Form </button>
+                </td>
+            </tr>
+    </table>
+
+
+</div>
+
+<!--{{ data}}-->
+<script>
+
+function coachSpecification(){
+ return {
+ name:'',
+ stateMatrix:[],
+ baseLevel:[],
+ firstOrderLevel:[],
+ secondOrderLevel:[],
+
+
+
+ loadModel(){
+
+ //parse json
+ json_data = JSON.parse("{{data|escapejs}}")
+ this.name = json_data.name
+ specification = json_data.specification
+
+ this.baseLevel = specification[0]
+ this.firstOrderLevel = specification[1]
+ this.secondOrderLevel = specification[2]
+ console.log(this.baseLevel)
+
+ this.stateMatrix.push(this.baseLevel)
+ this.stateMatrix.push(this.firstOrderLevel)
+ this.stateMatrix.push(this.secondOrderLevel)
+
+
+},
+saveRole(){
+},
+
+clearForm(){
+}
+
+
+}//return
+}//coachSpecification
+</script>
+{% endblock %}

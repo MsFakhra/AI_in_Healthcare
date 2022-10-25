@@ -6,35 +6,5 @@
 <script>
 const csrftoken = document.querySelector('[name=X-CSRFToken]').value;
 </script>
-hellloooo
-<form id="setStateInformation" method="post" action="statespecification/"> {% csrf_token %}
-</form>
 
-<div x-data="stateSpecification()" class="container py-5">
-    div x-init="loadmodel()">
-        template x-for="(bstate,bindex) in baseLevel" :key="bindex">
-
-        /template>
-    /div>
-    {{ data }}
-</div>
-
-<script>
-
-function stateSpecification(){
-return {
-baseLevel:'',
-
-loadmodel()
-{
-    // json_obj = JSON.parse("{{data|escapejs}}")
-    // console.log(json_obj.count);
-
-
-}
-
-}//return
-}//stateSpecification
-
-</script>
 {% endblock %}

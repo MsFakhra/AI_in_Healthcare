@@ -462,14 +462,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                                 </td>
                                                 <td>
                                                     <div x-show="ffunc.showParams">
-                                                        &nbsp; %age Usage <br>
+                                                        &nbsp; <!--%age Usage <br>-->
                                                         <input type="text" x-model="ffunc.functionWeight" placeholder="Function Weight" class="form-control mr-3">
                                                     </div>
                                                 </td>
 
                                                 <td>
                                                     <div x-show="ffunc.showParams">
-                                                        <span> Enter Parameter Values</span>
+                                                        <!--<span> Enter Parameter Values</span>-->
                                                         <table>
                                                             <tr>
                                                             <template x-for = "(fparam,fpindex) in ffunc.parameters" :key="fpindex">
@@ -525,14 +525,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                                 </td>
                                                 <td>
                                                     <div x-show="sfunc.showParams">
-                                                        &nbsp; %age Usage <br>
+                                                        &nbsp; <!--%age Usage <br>-->
                                                         <input type="text" x-model="sfunc.functionWeight" placeholder="Function Weight" class="form-control mr-3">
                                                     </div>
                                                 </td>
 
                                                 <td>
                                                     <div x-show="sfunc.showParams">
-                                                        <span> Enter Parameter Values</span>
+                                                        <!--<span> Enter Parameter Values</span>-->
                                                         <table>
                                                             <tr>
                                                             <template x-for = "(sparam,spindex) in sfunc.parameters" :key="spindex">
@@ -582,6 +582,23 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 <script>
  function modelSpecification(){
  return {
+
+ /* structure used for each layer
+A. states NxM matrix
+    mb
+B. Connection weights NxM matrix
+    non-adaptive: given by numbers and adaptive: state names
+D: Speed N x 1
+    non-adaptive: given by numbers and adaptive: state names
+E: Initial values N x 1
+  iv
+F: combination function structure:
+    this is a matrix which contains the 3D data, i.e.,
+    1. the weight or percentage usage of combination functions for a state mcsfw
+    2. the combination function (mcf)
+        2a. the combination function parameters (mcfpv)
+        */
+
  name:'',
  numberOfStates: 2,
  showBaseModel:false,
@@ -625,12 +642,14 @@ checkandgenerateModel(){
             //matrices
             let existingStates = this.baseLevel.length
             let diff = existingStates - this.numberOfStates
-            console.log(diff)
+
 
             if (this.numberOfStates <= existingStates) {
                this.baseLevel.splice(existingStates - diff, diff)
             }
-            else{
+            else
+            {
+
                for (let loopindex = 0; loopindex < this.numberOfStates - existingStates; loopindex++)
                {
                    index = existingStates + loopindex + 1
@@ -855,8 +874,6 @@ removeBaseState()
 
 addFLevelCombinationFunction(sindex){
 //add combination function at first level
-    console.log(Number(sindex))
-
     cfuncobjarray = {
         id:'0',
         name:'',
@@ -874,8 +891,7 @@ addFLevelCombinationFunction(sindex){
 removeFLevelCombinationFunction(sindex){
 //remove combination function at first level
 len = this.firstOrderLevel[sindex].combinationfunctions.length
-console.log(len)
-  if (len > 1)
+if (len > 1)
    {
         this.firstOrderLevel[sindex].combinationfunctions.splice(-1,1)
 
@@ -894,7 +910,6 @@ showandSetFLParameter(sindex,findex)
     this.firstOrderLevel[sindex].showParamBtn = true
 
     id = this.firstOrderLevel[sindex].combinationfunctions[findex].id
-    console.log(id)
 
     //searching function from json file
     for(let i = 0; i < this.combinationfuncs.length; i++){
@@ -1052,8 +1067,6 @@ removeFirstLevelCol(index){
 
 addSLevelCombinationFunction(sindex){
 //add combination function at second level
-    console.log(Number(sindex))
-
     cfuncobjarray = {
         id:'0',
         name:'',
@@ -1070,8 +1083,7 @@ addSLevelCombinationFunction(sindex){
 removeSLevelCombinationFunction(sindex){
 //remove combination function at second level
 len = this.secondOrderLevel[sindex].combinationfunctions.length
-console.log(len)
-  if (len > 1)
+if (len > 1)
    {
         this.secondOrderLevel[sindex].combinationfunctions.splice(-1,1)
 
@@ -1088,7 +1100,6 @@ showandSetSLParameter(sindex,findex){
     this.secondOrderLevel[sindex].showParamBtn = true
 
     id = this.secondOrderLevel[sindex].combinationfunctions[findex].id
-    console.log(id)
 
     //searching function from json file
     for(let i = 0; i < this.combinationfuncs.length; i++){
@@ -1123,8 +1134,6 @@ addSecondAdaptionLevel(){
     this.showFirstAddButton = false
     this.showSecondAddButton = false
     this.showSecondRemoveButton = true
-
-    console.log(this.firstOrderLevel.length)
 
     lastindex = this.firstOrderLevel[this.firstOrderLevel.length-1]['id']
     thenum =  lastindex.match(/\d+/)[0]
@@ -1210,45 +1219,29 @@ removeSecondLevelCol(index){
 
 
 save() {
-     //console.log(this.stateMatrix)
-     //console.log(this.baseLevel)
-     //console.log(this.firstOrderLevel)
-     //console.log(this.secondOrderLevel)
 
-     //end_time
-     //dt
-
-    /*axios.post(
-    '/statespecification/',
-    `{ this.stateMatrix }`,
-    {
-        headers: {
-            "Content-Type": "application/graphql",
-            "X-Shopify-Storefront-Access-Token": csrftoken
-        }
-    }
-    );*/
      axios({
         method: 'post',
         url: '/statespecification/',
         data: {
+            name: this.name,
             stateMatrix: this.stateMatrix//,
             //baseLevel: this.baseLevel,
             //firstOrderLevel: this.firstOrderLevel,
             //secondOrderLevel: this.secondOrderLevel
 
         },
-        headers: {'X-CSRFToken': csrftoken},
+        headers: {//'Content-Type': 'application/json',
+                   'X-CSRFToken': csrftoken},
                    validateStatus: (status) => {         //validateStatus
                    return true;
                   },
         })
         .then((response) => {
-            console.log(response.status);
-            // js : form submit
-
-
-            document.getElementById("createMModel").submit();
+            if (response.status == '200')
+            {
+                document.getElementById("createMModel").submit();
+            }
 
         }, (error) => {
             console.log(error.response.data);
