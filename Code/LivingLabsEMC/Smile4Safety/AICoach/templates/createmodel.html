@@ -53,6 +53,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     <td>
                                         <input type="text" x-model="bstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
                                     </td>
+                                    <td>
+                                        <input type="text" x-model="bstate.username" placeholder="User Prompt" class="form-control mr-3" size="10"></input>
+                                    </td>
                                     <!-- incoming connections-->
                                     <template x-for="col in bstate.inconnection">
                                         <td>
@@ -96,6 +99,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                             <!-- State name-->
                                             <td>
                                                 <input type="text" x-model="fstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                            </td>
+                                            <td>
+                                                <input type="text" x-model="fstate.username" placeholder="User Prompt" class="form-control mr-3" size="10" required></input>
                                             </td>
                                             <!-- incoming connections-->
                                             <template x-for="col in fstate.inconnection">
@@ -143,7 +149,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         </td>
                                         <!-- State name-->
                                         <td>
-                                            <input type="text" x-model="sstate.name" class="form-control mr-3" size="10" required></input>
+                                            <input type="text" x-model="sstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                        </td>
+                                        <td>
+                                            <input type="text" x-model="sstate.username" placeholder="User Prompt" class="form-control mr-3" size="10" required></input>
                                         </td>
                                         <!-- incoming connections-->
                                         <template x-for="col in sstate.inconnection">
@@ -286,11 +295,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     </td>
                                     <!-- Initial Value-->
                                     <td>
-                                        <input type="text" x-model="bstate.initvalue" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                        <input type="text" x-model="bstate.initvalue" class="form-control mr-3" size="10" required></input>
                                     </td>
                                     <!-- Speed factor-->
                                     <td>
-                                        <input type="text" x-model="bstate.speed" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                        <input type="text" x-model="bstate.speed"  class="form-control mr-3" size="10" required></input>
                                     </td>
 
                                 </tr>
@@ -312,11 +321,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                             </td>
                                             <!-- Initial Value-->
                                             <td>
-                                                <input type="text" x-model="fstate.initvalue" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                                <input type="text" x-model="fstate.initvalue"  class="form-control mr-3" size="10" required></input>
                                             </td>
                                             <!-- Speed factor-->
                                             <td>
-                                                <input type="text" x-model="fstate.speed" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                                <input type="text" x-model="fstate.speed"  class="form-control mr-3" size="10" required></input>
                                             </td>
 
                                         </tr>
@@ -339,11 +348,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         </td>
                                         <!-- Initial Value-->
                                         <td>
-                                            <input type="text" x-model="sstate.initvalue" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                            <input type="text" x-model="sstate.initvalue"  class="form-control mr-3" size="10" required></input>
                                         </td>
                                         <!-- Speed factor-->
                                         <td>
-                                            <input type="text" x-model="sstate.speed" placeholder="Enter State Name" class="form-control mr-3" size="10" required></input>
+                                            <input type="text" x-model="sstate.speed"  class="form-control mr-3" size="10" required></input>
                                         </td>
 
                                     </tr>
@@ -662,7 +671,10 @@ checkandgenerateModel(){
                       parameters:[{name:'order', value:''},{name:'scaling factor', value:''}],
                       showParams:false
                       }
-                      this.baseLevel.push({showParamBtn:false, id: 'X'+index, name: '', inconnection: [{value: ''}], connectionweights:[{value: ''}], speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]})
+
+                      this.baseLevel.push({showParamBtn:false, id: 'X'+index, name: '',username: '', inconnection: [{value: ''}], connectionweights:[{value: ''}], speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
+                      , actionable:true, successmsg:'',warningmsg:''})
+
                }
 
             } //else
@@ -815,7 +827,10 @@ console.log(len)
 
     lastindex = this.baseLevel.length
     index = lastindex + 1
-    this.baseLevel.push({id: 'X'+ index, name: '', inconnection: [{value:''}], connectionweights:[{value: ''}],speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]})
+
+    this.baseLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''}], connectionweights:[{value: ''}],speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
+                        , actionable:true, successmsg:'',warningmsg:''})
+
     this.numberOfStates = index
 
 
@@ -963,7 +978,9 @@ addFirstAdaptionLevel(){
             showParams:false
             }
 
-        this.firstOrderLevel.push({id: 'X' + index, name: '', inconnection: [{value:''},{value:''},{value:''}],connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]})
+        this.firstOrderLevel.push({id: 'X' + index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}],connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                    , actionable:true, successmsg:'',warningmsg:''})
+
     }
 
 },
@@ -986,7 +1003,9 @@ addFirstLevelState(){
             showParams:false
             }
 
-    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]})
+    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                , actionable:true, successmsg:'',warningmsg:''})
+
 
     //reset second layer
     len = this.firstOrderLevel.length
@@ -1151,7 +1170,9 @@ addSecondAdaptionLevel(){
             showParams:false
             }
 
-        this.secondOrderLevel.push({id: 'X'+ index, name: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]})
+        this.secondOrderLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                    , actionable:true, successmsg:'',warningmsg:''})
+
     }
 
 },
@@ -1173,7 +1194,9 @@ addSecondLevelState(){
          showParams:false
     }
 
-    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]})
+    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                , actionable:true, successmsg:'',warningmsg:''})
+
 },
 
 removeSecondLevelState(){

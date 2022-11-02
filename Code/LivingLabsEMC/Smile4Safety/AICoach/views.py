@@ -13,12 +13,16 @@ def main(request):
         combinationFunctions = json.load(json_file)
         #print(combinationFunctions)
     dataJSON = dumps(combinationFunctions)
+    #return render(request, 'monitoring.html', {'data': dataJSON})
+
     return render(request, 'createmodel.html', {'data': dataJSON})
+    #return render(request, 'actionspecification.html', {'data': dataJSON})
     #return render(request, 'addcombinationfunction.html', {'data': dataJSON})
     #return render(request, 'testfile.html', {'data': dataJSON})
     #return render(request,'main.html',{})
 
 def statespecification(request):
+    # writing model to the database
     if request.method == 'POST':
         data = request.body     #retrieving model in bytes
 
@@ -34,14 +38,37 @@ def statespecification(request):
         # validate and database save
 
         #ModelSpecification.objects.create(model_name = name, model_specification= specs, last_modified =  datetime.now(timezone.utc))
-        return JsonResponse({"status": 'success'})
+        return JsonResponse({"status": 'success statespecification'})
 
     else:
         return JsonResponse({"status": 'no model received'})
+
+def updatespecification(request):
+    if request.method == 'POST':
+        data = request.body     #retrieving model in bytes
+
+
+        # Decode UTF-8 bytes to Unicode, and convert single quotes
+        # to double quotes to make it valid JSON
+        str_model = data.decode('utf8').replace("'", '"')    # returns byte data as string
+        dict_model = json.loads(str_model) #dict
+        str_model = json.dumps(dict_model) #dict to str
+
+        id = dict_model["id"]
+        name = dict_model["name"]
+        model = ModelSpecification.objects.get(model_id=id)
+
+        specs = dict_model["stateMatrix"]
+
+
+        return JsonResponse({"status": 'success to update'})
+
+def rolesspecificationupdated(request):
+    return JsonResponse({"status": 'success roles'})
 def actionspecification(request):
     # retrieve last element from database
     modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-    name = modelobj.model_name
+
     specs = modelobj.model_specification
 
     ##formatting string to make it json
@@ -53,7 +80,8 @@ def actionspecification(request):
     jsonData = json.loads(withoutFalse)
 
     dict_model = {
-        'name': name,
+        'id': modelobj.model_id,
+        'name': modelobj.model_name,
         'specification': jsonData
     }
 

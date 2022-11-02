@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+
+<div class="center">
+  <table>
+    <tr>
+      <td>
+        <button id="X1"  class="button button4" onclick="setColor('X1')">X1</button>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <button id="X2" class="button button4"  onclick="setColor('X2')">X2</button>
+      </td>
+      <td>
+        <button id="X3"  class="button button4"  onclick="setColor('X3')">X3</button>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <button id="X4"  class="button button4"  onclick="setColor('X4')">X4</button>
+      </td>
+      <td>
+        <button  id="X5"  class="button button4"  onclick="setColor('X5')">X5</button>
+      </td>
+      <td>
+        <button  id="X6"  class="button button4"  onclick="setColor('X6')">X6</button>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <button  id="X7" class="button button4"  onclick="setColor('X7')">X7</button>
+      </td>
+    </tr>
+
+  </table>
+</div>
+
+<script>
+    var count = 1;
+    function setColor(btn) {
+        var property = document.getElementById(btn);
+        if (count == 0) {
+            property.style.backgroundColor = "#27AE60"
+            count = 1;
+        }
+        else {
+            property.style.backgroundColor = "#D0D3D4"
+            count = 0;
+        }
+    }
+
+</script>
+<!--{{ data}}-->
+<script>
+
+function coachSpecification(){
+ return {
+ name:'',
+ stateMatrix:[],
+ baseLevel:[],
+ firstOrderLevel:[],
+ secondOrderLevel:[],
+
+
+
+ loadModel(){
+
+ //parse json
+ json_data = JSON.parse("{{data|escapejs}}")
+ this.name = json_data.name
+ specification = json_data.specification
+
+ this.baseLevel = specification[0]
+ this.firstOrderLevel = specification[1]
+ this.secondOrderLevel = specification[2]
+ console.log(this.baseLevel)
+
+ this.stateMatrix.push(this.baseLevel)
+ this.stateMatrix.push(this.firstOrderLevel)
+ this.stateMatrix.push(this.secondOrderLevel)
+
+
+},
+saveRole(){
+},
+
+clearForm(){
+}
+
+
+}//return
+}//coachSpecification
+</script>
+
+{% endblock %}
