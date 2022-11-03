@@ -37,7 +37,7 @@ def statespecification(request):
 
         # validate and database save
 
-        #ModelSpecification.objects.create(model_name = name, model_specification= specs, last_modified =  datetime.now(timezone.utc))
+        ModelSpecification.objects.create(model_name = name, model_specification= specs, last_modified =  datetime.now(timezone.utc))
         return JsonResponse({"status": 'success statespecification'})
 
     else:
@@ -59,7 +59,8 @@ def updatespecification(request):
         model = ModelSpecification.objects.get(model_id=id)
 
         specs = dict_model["stateMatrix"]
-
+        model.model_specification = specs
+        model.save()
 
         return JsonResponse({"status": 'success to update'})
 
