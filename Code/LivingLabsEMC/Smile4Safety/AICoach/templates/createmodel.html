@@ -9,7 +9,8 @@
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 </script>
 
-<form id="createMModel" method="post" action="actionspecification/"> {% csrf_token %}
+<!--<form id="createMModel" method="post" action="actionspecification/"> {% csrf_token %}-->
+<form id="createMModel" method="post" action="{% url 'actionspecification' %}"> {% csrf_token %}
 <div x-data="modelSpecification()" class="container py-5">
     <table>
         <tr>
@@ -673,7 +674,7 @@ checkandgenerateModel(){
                       }
 
                       this.baseLevel.push({showParamBtn:false, id: 'X'+index, name: '',username: '', inconnection: [{value: ''}], connectionweights:[{value: ''}], speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
-                      , actionable:true, successmsg:'',warningmsg:''})
+                      , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
                }
 
@@ -829,7 +830,7 @@ console.log(len)
     index = lastindex + 1
 
     this.baseLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''}], connectionweights:[{value: ''}],speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
-                        , actionable:true, successmsg:'',warningmsg:''})
+                        , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
     this.numberOfStates = index
 
@@ -979,7 +980,7 @@ addFirstAdaptionLevel(){
             }
 
         this.firstOrderLevel.push({id: 'X' + index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}],connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                    , actionable:true, successmsg:'',warningmsg:''})
+                                    , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
     }
 
@@ -1004,7 +1005,7 @@ addFirstLevelState(){
             }
 
     this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                , actionable:true, successmsg:'',warningmsg:''})
+                                , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
 
     //reset second layer
@@ -1171,7 +1172,7 @@ addSecondAdaptionLevel(){
             }
 
         this.secondOrderLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                    , actionable:true, successmsg:'',warningmsg:''})
+                                    , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
     }
 
@@ -1195,7 +1196,7 @@ addSecondLevelState(){
     }
 
     this.secondOrderLevel.push({id: 'X'+idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                , actionable:true, successmsg:'',warningmsg:''})
+                                , actionable:true, successmsg:'',warningmsg:'',complete:false})
 
 },
 

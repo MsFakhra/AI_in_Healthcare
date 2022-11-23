@@ -9,7 +9,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 <form id="updateMModel" method="post" action="{% url 'rolesspecificationupdated' %}"> {% csrf_token %}
     <div x-data="coachSpecification()" x-init="loadModel()" class="container py-5">
 
-    <table>
+    <table class="tblstyle">
             <tr>
                 <td>
                     <span class="input-group-text" id="basic-addon3" x-text="'Name of the Model:' +'\xa0\xa0\xa0\xa0\xa0\xa0\xa0'+ name"> </span>
@@ -54,12 +54,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         </td>
                                         <td>
                                             <td x-show="bstate.actionable">
-                                                <input type="text" x-model="bstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="bstate.successmsg" placeholder="Enter sample success messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="bstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>-->
                                             </td>
                                         </td>
                                         <td>
                                             <div x-show="bstate.actionable">
-                                                <input type="text" x-model="bstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="bstate.warningmsg" placeholder="Enter sample warning messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="bstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>-->
                                             </div>
                                         </td>
 
@@ -110,12 +112,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         </td>
                                         <td>
                                             <td x-show="fstate.actionable">
-                                                <input type="text" x-model="fstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="fstate.successmsg" placeholder="Enter sample success messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="fstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>-->
                                             </td>
                                         </td>
                                         <td>
                                             <div x-show="fstate.actionable">
-                                                <input type="text" x-model="fstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="fstate.warningmsg" placeholder="Enter sample warning messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="fstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>-->
                                             </div>
                                         </td>
 
@@ -160,18 +164,20 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         <td>
                                             <select class="form-select" x-model="sstate.actionable" x-on:change="showandSetParameters(sindex)">
                                                 <!--<option value="0" hidden selected> -- select an option -- </option>-->
-                                                    <option value="true"> Actionable</option>
-                                                    <option value="false"> Observatory</option>
+                                                    <option value= true> Actionable</option>
+                                                    <option value=false> Observatory</option>
                                             </select>
                                         </td>
                                         <td>
                                             <td x-show="sstate.actionable">
-                                                <input type="text" x-model="sstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="sstate.successmsg" placeholder="Enter sample success messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="sstate.successmsg" placeholder="Success Message" class="form-control mr-3" size="12"></input>-->
                                             </td>
                                         </td>
                                         <td>
                                             <div x-show="sstate.actionable">
-                                                <input type="text" x-model="sstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>
+                                                <textarea x-model="sstate.warningmsg" placeholder="Enter sample warning messages one per line" class="form-control" rows="3"></textarea>
+                                                <!--<input type="text" x-model="sstate.warningmsg" placeholder="Warning Message" class="form-control mr-3" size="12"></input>-->
                                             </div>
                                         </td>
 
@@ -199,7 +205,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         <tr>
             <td>
                 <button x-on:click="saveRole()" class="btn btn-success"> Save </button>
-                <button x-on:click="clearForm()" class="btn btn-danger"> Clear Form </button>
+                <button x-on:click="clearForm()" class="btn btn-danger"> Reset Form </button>
             </td>
         </tr>
     </table>
@@ -223,12 +229,13 @@ function coachSpecification(){
 
  loadModel(){
 
- //parse json
+ //loading MM
+
  json_data = JSON.parse("{{data|escapejs}}")
  this.id = json_data.id
  this.name = json_data.name
  specification = json_data.specification
-
+ console.log(specification)
 
  this.baseLevel = specification[0]
  this.firstOrderLevel = specification[1]
@@ -241,6 +248,7 @@ function coachSpecification(){
 },
 
 showandSetParameters(index){
+    //setting the parameters
     if (this.baseLevel.states[index].actionable == 'true')
         this.baseLevel.states[index].actionable = true
     else
@@ -249,7 +257,7 @@ showandSetParameters(index){
 },
 
 showandSetFLParameters(index){
-    //console.log(this.firstOrderLevel.states[index].actionable)
+    //setting the parameters
     if (this.firstOrderLevel.states[index].actionable == 'true')
         this.firstOrderLevel.states[index].actionable = true
     else
@@ -258,7 +266,7 @@ showandSetFLParameters(index){
 
 
 showandSetSLParameters(index){
-    //console.log(this.secondOrderLevel.states[index].actionable)
+    //setting the parameters
     if (this.secondOrderLevel.states[index].actionable == 'true')
         this.secondOrderLevel.states[index].actionable = true
     else
@@ -266,14 +274,7 @@ showandSetSLParameters(index){
 },
 
 saveRole(){
-
-    for(i=0;i< this.baseLevel.length;i++)
-        if (this.baseLevel.states[index].actionable == true)
-            this.baseLevel.states[index].actionable = 'true'
-        else
-            this.baseLevel.states[index].actionable = 'false'
-
-
+//saving data to the database
 
      axios({
         method: 'post',
@@ -291,10 +292,6 @@ saveRole(){
                   },
         })
         .then((response) => {
-//            if (response.status == '200')
-//            {
-//                document.getElementById("updateMModel").submit();
-//            }
             console.log(response.status)
         }, (error) => {
             console.log(error.response.data);
@@ -304,6 +301,7 @@ saveRole(){
 ,
 
 clearForm(){
+    loadModel()
 }
 
 

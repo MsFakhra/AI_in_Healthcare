@@ -2,96 +2,505 @@
 
 {% block page_content %}
 
-<div class="center">
-  <table>
-    <tr>
-      <td>
-        <button id="X1"  class="button button4" onclick="setColor('X1')">X1</button>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <button id="X2" class="button button4"  onclick="setColor('X2')">X2</button>
-      </td>
-      <td>
-        <button id="X3"  class="button button4"  onclick="setColor('X3')">X3</button>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <button id="X4"  class="button button4"  onclick="setColor('X4')">X4</button>
-      </td>
-      <td>
-        <button  id="X5"  class="button button4"  onclick="setColor('X5')">X5</button>
-      </td>
-      <td>
-        <button  id="X6"  class="button button4"  onclick="setColor('X6')">X6</button>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <button  id="X7" class="button button4"  onclick="setColor('X7')">X7</button>
-      </td>
-    </tr>
+<p> Model Monitoring</p>
 
-  </table>
+<div x-data="monitoringProgress">
+
+    <!--Base Network Model-->
+    <div>
+        <template x-for="(progress,pindex) in progressOfNetwork" :key="pindex">
+            <div>
+                Iteration <span x-text="pindex"></span>
+                <template x-for="(prg,prgindex) in progress.progress" :key="prgindex">
+                    <div  x-data="{bstate:prg.from }">
+                        <table>
+                            <tr>
+                                <td>
+                                    <button id="bstate.id" x-text="bstate.name" type="button"
+                                        @click="recordFromAction(bstate);"
+                                        class="button button4"
+                                        :class="{ 'bg-yellow-300': (bstate.actionable && !bstate.complete),
+                                                  'bg-green-500':  (bstate.actionable && bstate.complete),
+                                                  'bg-green-300' : (!bstate.actionable && bstate.complete)}"
+                                        :disabled="!bstate.actionable">
+                                    </button>
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            <template x-for="(tostate,toindex) in prg.to" :key="toindex">
+                                                <td>
+                                                    <div x-data="{initial: tostate.actionable}">
+                                                    <button id="tostate.id" x-text="tostate.name" type="button"
+                                                      @click="recordToAction(tostate)"
+                                                      class="button button4"
+                                                      :class="{ 'bg-yellow-300': (tostate.actionable && !tostate.complete),
+                                                                'bg-green-500':  (tostate.actionable && tostate.complete),
+                                                                'bg-green-300' : (!tostate.actionable && tostate.complete)}"
+                                                      :disabled="tostate.complete">
+                                                    </button>
+                                                    </div>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div x-show="bstate.complete">
+                                        <button x-on:click="showNextState(bstate)" class="btn btn-success"> Show Next </button>
+                                        <button x-on:click="skipNextActionableState(bstate)" class="btn btn-warning"> Skip Next </button>
+                                    </div>
+                               </td>
+                           </tr>
+                        </table>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+
+    <!--Base Network Model-->
 </div>
 
-<script>
-    var count = 1;
-    function setColor(btn) {
-        var property = document.getElementById(btn);
-        if (count == 0) {
-            property.style.backgroundColor = "#27AE60"
-            count = 1;
-        }
-        else {
-            property.style.backgroundColor = "#D0D3D4"
-            count = 0;
-        }
-    }
 
-</script>
 <!--{{ data}}-->
+
 <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('monitoringProgress', () => ({
+            name:'',
+            stateMatrix:[],
 
-function coachSpecification(){
- return {
- name:'',
- stateMatrix:[],
- baseLevel:[],
- firstOrderLevel:[],
- secondOrderLevel:[],
+            //base Level Network
+            individualBaseLevelConnections:[],  //this structure contains all individual connections without X1->X1. May also have X1-X2;X1->X3
+            baseLevelNetwork:[],                // this structure contains causal connection X1->X2,X3 and so on
+            progressOfNetwork:[],               // this structure contains progress of network
+
+            iteration:0,
+
+            // Second Order Adaption
+            firstOrderLevel:[],
+            secondOrderLevel:[],
+
+            //controlling events
+
+            recordFromAction(state){
+            // This function sets the completion status of a state
+
+                //1. Set the completion status
+                state.complete=true
+                //2. Check the 'to' states in progressOfNetwork that are not actionable. Mark them as completed.
+                curIterProgress = this.progressOfNetwork[this.iteration].progress
+                //console.log('record from: curIterProgress',curIterProgress)
+                idx = curIterProgress.findIndex(e => e.from.id == state.id)
+                if(idx > -1)
+                {
+                   //2.a. set the to element status
+                    progress_elements = curIterProgress[idx].to
+                    for(let i = 0; i < progress_elements.length; i++)
+                    {
+                        progress_element = progress_elements[i]
+                        if(progress_element.actionable == false)
+                        {
+                            progress_element.complete = state.complete
+                            //2.a.b. For every corresponding to state. Check the 'from non-actionable states' status. Mark them as completed for the coming progress in that iteration.
+                            //completed = this.getFromCompletionStatus(elem)
+                            //completed2 = this.getToCompletionStatus(from_elem, elem)
+                        }
+                    }
+                    //2.b. set the to element(s) status in previous iterations
+                    for(let i = 0; i < curIterProgress.length; i++)
+                    {
+                        toelems = curIterProgress[i].to
+                        idx = toelems.findIndex(e => e.id == state.id)
+                        if(idx > -1)
+                        {
+                            toelems[idx].complete = state.complete
+                        }
+
+                    }
+
+                }
+            },
+
+            showNextState(state){
+                // This is for the UI elements to show the next state
+                //input: from state
+                //output: next connection
+
+                //1. get the from state (e.g., X1),
+                //1.a. set showNext = false to disable the button for this state
+                console.log('cur state: ', state)
+                state.showNext = false
+
+                //2. get the last progress item (X1->X2) at certain iteration
+
+                curIterProgress =  this.progressOfNetwork[this.iteration].progress
+
+                //3. a. check if last element is reached then increment the iteration
+                if(curIterProgress.length == this.baseLevelNetwork.length)
+                {
+                    //3.a.a. if there are to elements, then increment the iteration, and push the first element to the progressOfNetwork
+                    last_progress_elements = curIterProgress[curIterProgress.length - 1].to
+                    console.log('last element: ', last_progress_element)
+                    if(last_progress_elements.length)
+                    {
+                        last_progress_element = last_progress_elements[0]
+                        //console.log('last element: ', last_progress_element)
+                        if(last_progress_element.id)
+                        {
+                            nw_elements = []
+                            this.getNextConnections(nw_elements, last_progress_elements)
+                            if(nw_elements.length > 0)
+                            {
+                                //3.a.a.a set the status of the last progress elements as completed + add elements to the next iteration
+                                for(var i = 0; i< last_progress_elements.length; i++)
+                                {
+                                   last_progress_elements[i].complete = state.complete
+                                }
+                                this.iteration ++
+                                this.progressOfNetwork[this.iteration] = {progress:nw_elements}
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    //3. get the 'to' elements from progress, append the progress if there is a to element
+                    //3.a. set showNext = true
+                    curIterProgress =  this.progressOfNetwork[this.iteration].progress
+                    if(curIterProgress.length > 0)
+                    {
+                        last_progress_element = curIterProgress[curIterProgress.length - 1].to
+                        this.getNextConnections(curIterProgress, last_progress_element)
+                    }
+                }
+                return
+            },
 
 
+            //initializations
 
- loadModel(){
+            init(){
+                /* Loading the graph from the database*/
+                //parse json
+                 json_data = JSON.parse("{{data|escapejs}}")
+                 this.name = json_data.name
+                 specification = json_data.specification
 
- //parse json
- json_data = JSON.parse("{{data|escapejs}}")
- this.name = json_data.name
- specification = json_data.specification
+                 baseModel = specification[0]
+                 this.firstOrderLevel = specification[1]
+                 this.secondOrderLevel = specification[2]
 
- this.baseLevel = specification[0]
- this.firstOrderLevel = specification[1]
- this.secondOrderLevel = specification[2]
- console.log(this.baseLevel)
+                 //generating stateMatrix
+                 this.stateMatrix.push(specification[0])
+                 this.stateMatrix.push(specification[1])
+                 this.stateMatrix.push(specification[2])
 
- this.stateMatrix.push(this.baseLevel)
- this.stateMatrix.push(this.firstOrderLevel)
- this.stateMatrix.push(this.secondOrderLevel)
+                 //generating model matrix. This matrix consists of outgoing connections
+                 this.generateBaseLevelNetwork(baseModel)
+
+                 // initialization of the progress of the network
+
+                 initial_state = this.baseLevelNetwork[0]
+                 progress = [initial_state]
+
+                 this.progressOfNetwork[this.iteration] = {
+                 progress: progress}
+            },  //init
+
+            generateBaseLevelNetwork(model) {
+                /*making the outgoing graph from individual incoming connections
+                    Input: X1->X2 and X1->X3
+                    Output: X1->X2,X3
+                 */
+
+                incomingGraph = []
+                // get outgoing states for all states in a model
+                let index = 0
+                for (index;index < model.states.length; index++)
+                {
+                    state = model.states[index]
+                    this.getOutgoingStates(state, model)
+                }  // get outgoing states for all states in a model
+
+                for (index = 0; index < this.individualBaseLevelConnections.length; index++)
+                {
+                    from_elem = this.individualBaseLevelConnections[index].from
+                    to_elem = this.individualBaseLevelConnections[index].to
+                    to_elems=[]
+
+                    //console.log('from elem, to elem',from_elem, to_elem)
+                    idx = this.baseLevelNetwork.findIndex(e => e.from === from_elem)
+                    //console.log('idx', idx)
+                    showNext = false
+                    if (index ==0){
+                        showNext = true
+                    }
+                    if(idx == -1)
+                    {
+                        //LastLink is used to show or hide the shownext buttons
+                        last_link = false
+                        if (index == (this.individualBaseLevelConnections.length - 1))
+                        {
+                            last_link = true
+                        }
+                        //check if to_elem is already a from element then create a new element
+                        toidx = this.baseLevelNetwork.findIndex(e => e.from === to_elem)
+                        //console.log('toidx', toidx)
+
+                        if(toidx > -1)
+                        {
+                            elem = this.baseLevelNetwork[toidx].from
+                            to_elem = {
+                                id: elem.id,
+                                name: elem.name,
+                                username: elem.username,
+                                actionable: elem.actionable,
+                                combinationfunctions: elem.combinationfunctions,
+                                complete: false,
+                                connectionweights: elem.connectionweights,
+                                inconnection: elem.inconnection,
+                                initvalue: elem.initvalue,
+                                showParamBtn: elem.showParamBtn,
+                                speed: elem.speed,
+                                successmsg: elem.successmsg,
+                                warningmsg: elem.warningmsg
+                            }
 
 
-},
-saveRole(){
-},
+                        }
+                        to_elems.push(to_elem)
 
-clearForm(){
-}
+                        this.baseLevelNetwork.push({from: from_elem, to: to_elems, showNext:showNext, lastLink: last_link})
+                    }
+                    else
+                    {
+                        //from state already exists in the network, then append the baseModel
+
+                        this.baseLevelNetwork[idx].to.push(to_elem)
+
+                        //LastLink is used to show or hide the show next buttons when we have last connection
+                        if (index === (this.individualBaseLevelConnections.length - 1))
+                        {
+                            this.baseLevelNetwork[idx].lastLink = true
+                        }
+                    }
+                }
+            }, //generateBaseLevelNetwork
+
+            getOutgoingStates(state, model)
+            {
+                   //Function to extract the incoming states to make an outgoing graph
+                   //Input: States like X2<-X1; X3<-X1
+                   //Output: X1->X2 and X1->X3
+                   sid = state.id.toLowerCase()
+                   found = false
+                   for(i = 0; i< model.states.length;i++)
+                   {
+                       incoming = model.states[i].inconnection
+                       for(j = 0; j < incoming.length;j++)
+                       {
+                        val = incoming[j].value.toLowerCase()
+                        if( val == sid)
+                        {
+                            found = true
+                            ostate = model.states[i]
+                            if(ostate != state) //avoiding self-reference
+                            {
+                                this.individualBaseLevelConnections.push({'from':state, 'to':ostate})
+                            }
+                        }
+                       }
+                   }
+                   if (!found)
+                   {
+                      toelem = {
+                                id: '',
+                                name: 'process completed',
+                                username: 'process completed',
+                                actionable: false,
+                                combinationfunctions:[],
+                                complete: false,
+                                connectionweights: [],
+                                inconnection: [],
+                                initvalue: 0,
+                                showParamBtn: false,
+                                speed: 0,
+                                successmsg: ['Process is completed'],
+                                warningmsg: []
+                      }
+                      this.individualBaseLevelConnections.push({'from':state, 'to':toelem})
+                   }
+            },
+
+            getNextConnections(nw_elements, progress_elements){
+               // This function gets the next connection(s) from the network
+               // Input: progress_element is the element which represents the progress of the current iteration. It has to states. That is X1->X2, then this function takes X2 as input
+               //Output: network elements to be used per iteration. An element is a connection which has from and to state
+
+                for(index = 0; index < progress_elements.length; index++)
+                {
+                    tostate = progress_elements[index]
+                    if (tostate.id)
+                    {
+                        elem = this.extractNextConnection(tostate)
+                        nw_element = {from: elem[0],
+                                  to: elem[1],
+                                  showNext:true,
+                                  lastLink: false
+                                  }
+
+                        nw_elements.push(nw_element)
+                    }
+                }
+            },
+
+            extractNextConnection(idx)
+            {
+                // this function extract the next connection from the base level network and create a new connection and returns it
+                //Input: a state - it is the to state of a model like X1
+                //Output: a connection like X1->X2,X3
+                idx = tostate.id.match(/\d+/)[0] - 1 // extract index
+                nextConn = this.baseLevelNetwork[idx]
+
+                //1. taking from element from the base level network
+                elem = nextConn.from
+
+                //1.a. If a state is non-actionable, then check the previous progress. If it is marked as completed for the current iteration, then set the status as true.
+                completed = this.setFromCompletionStatus(elem)
+
+                from_elem = {
+                    id: elem.id,
+                    name: elem.name,
+                    username: elem.username,
+                    actionable: elem.actionable,
+                    combinationfunctions: elem.combinationfunctions,
+                    complete: completed,
+                    connectionweights: elem.connectionweights,
+                    inconnection: elem.inconnection,
+                    initvalue: elem.initvalue,
+                    showParamBtn: elem.showParamBtn,
+                    speed: elem.speed,
+                    successmsg: elem.successmsg,
+                    warningmsg: elem.warningmsg
+                }
+
+                //2. generating to connection(s)
+                to_elems=[]
+                for(var i = 0; i < nextConn.to.length; i++)
+                {
+                    elem = nextConn.to[i]
+                    //2.a. If a state is non-actionable, then check the previous progress. If it is marked as completed for current iteration, then set the status as true.
+                    completed = this.setToCompletionStatus(from_elem, elem)
+                    //console.log('extractNextConnection: completed TO- status', completed)
+
+                    to_elem = {
+                        id: elem.id,
+                        name: elem.name,
+                        username: elem.username,
+                        actionable: elem.actionable,
+                        combinationfunctions: elem.combinationfunctions,
+                        complete: completed,
+                        connectionweights: elem.connectionweights,
+                        inconnection: elem.inconnection,
+                        initvalue: elem.initvalue,
+                        showParamBtn: elem.showParamBtn,
+                        speed: elem.speed,
+                        successmsg: elem.successmsg,
+                        warningmsg: elem.warningmsg
+                    }
+                    to_elems.push(to_elem)
+                }
+
+                return [from_elem,to_elems]
+            },
+
+            setToCompletionStatus(fromelem, toelem){
+                //This method gets the element in the to connections.
+                //Input: to state in a connection
+                //Output: completion status of the element
+
+                //1. get the from element status
+                //2. if the from element is non-actionable and completed. then return completion status as true.
+                //3. if the from or toelem is actionable then return false
+
+                actionable=fromelem.actionable
+
+                if(actionable)
+                    return false
+                else
+                {
+                    if(toelem.actionable)
+                        return false
+                    else
+                    {
+                        if(!actionable)
+                            return fromelem.complete
+                    }
+                }
 
 
-}//return
-}//coachSpecification
+                return false
+            },
+
+            setFromCompletionStatus(elem){
+                //This function gets the completion status of a state.
+                //Input: elem 'from' state - to check if it is actionable and completed?
+                //Output: If it is non-actionable, and it is completed in an iteration, then it returns true else false
+
+                //1. get the progress of the current iteration
+                curIterProgress =  this.progressOfNetwork[this.iteration].progress
+                //console.log('getfrom_completion_status curprogress',curIterProgress)
+                //1.a. if the current iteration length is reached to maximum (i.e. baseLevelNetwork.length) then return completion status as false
+                if(curIterProgress.length == this.baseLevelNetwork.length)
+                    return false
+
+                //2. find if the state is present in 'from' or 'to' elements in the progress
+
+                idx = curIterProgress.findIndex(e => e.from === elem)
+                if(idx < 0)
+                {
+                    //2.a. if the state is present in to states of the current iteration
+                    //console.log('idx not present in from states check to states')
+                    for(var i = 0; i < curIterProgress.length; i++)
+                    {
+                        toelems = curIterProgress[i].to
+                        toidx = toelems.findIndex(e => e.id == elem.id)
+                        if(toidx > -1)
+                        {
+                            toelem = toelems[toidx]
+                            //console.log('elem,to Elem',elem,toelem)
+
+                            //2.a.a. check if the state is non-actionable.
+                            //2.a.b. check the complete status and return it
+
+                            if(toelem.actionable == false)
+                            {
+                                return toelem.complete
+                            }
+
+                        }
+                        //else
+                        //    console.log('toidx not found',toidx)
+                    }
+                }
+                else
+                {
+                    //2.b. if the state is present in from states of the current iteration
+                    //console.log('idx present in from states')
+                    return elem.complete
+
+                }
+                return false
+            }//end of functions
+
+        }))
+    })
 </script>
+
+
 
 {% endblock %}
