@@ -8,8 +8,10 @@ from .models import ModelSpecification
 # Create your views here.
 def main(request):
     modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-    #modelobj = ModelSpecification.objects.get(model_id=29)
-    #modelobj = ModelSpecification.objects.get(model_id=32)
+
+    #modelobj = ModelSpecification.objects.get(model_id=33) #use this model for monitoringv1.html
+    #modelobj = ModelSpecification.objects.get(model_id=34)  # use this model for recursive and monitoringv1.html
+
     specs = modelobj.model_specification
 
     ##formatting string to make it json
