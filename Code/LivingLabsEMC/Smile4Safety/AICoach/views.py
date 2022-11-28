@@ -7,10 +7,11 @@ from .models import ModelSpecification
 
 # Create your views here.
 def main(request):
-    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
+    #modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
 
-    #modelobj = ModelSpecification.objects.get(model_id=33) #use this model for monitoringv1.html
-    #modelobj = ModelSpecification.objects.get(model_id=34)  # use this model for recursive and monitoringv1.html
+    #modelobj = ModelSpecification.objects.get(model_id=33) #use this model for monitoringv1.html it has ss statespecification
+    #modelobj = ModelSpecification.objects.get(model_id=34)  # use this model it has x1,x2 specification without recursive
+    modelobj = ModelSpecification.objects.get(model_id=32)  # use this model for recursive and monitoringv1.html it has x1,x2 specification
 
     specs = modelobj.model_specification
 
@@ -31,7 +32,7 @@ def main(request):
     dataJSON = json.dumps(dict_model)  # dict to str
 
     return render(request, 'monitoring.html', {'data': dataJSON})
-    #return render(request, 'monitoringv1.html', {'data': dataJSON})
+    #return render(request, 'monitoringv1.html', {'data': dataJSON})  #works with model 32
 
     #checked
     #return render(request, 'createmodel.html', {'data': dataJSON})
