@@ -7,11 +7,12 @@ from .models import ModelSpecification
 
 # Create your views here.
 def main(request):
-    #modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
 
-    #modelobj = ModelSpecification.objects.get(model_id=33) #use this model for monitoringv1.html it has ss statespecification
+    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0] #pg11 model specification
+
+
     #modelobj = ModelSpecification.objects.get(model_id=34)  # use this model it has x1,x2 specification without recursive
-    modelobj = ModelSpecification.objects.get(model_id=32)  # use this model for recursive and monitoringv1.html it has x1,x2 specification
+    #modelobj = ModelSpecification.objects.get(model_id=32)  # use this model for recursive and monitoringv1.html it has x1,x2 specification
 
     specs = modelobj.model_specification
 
