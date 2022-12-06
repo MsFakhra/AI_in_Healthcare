@@ -10,15 +10,16 @@
     <div>
         <template x-for="(progress,pindex) in progressOfNetwork" :key="pindex">
             <div>
+                <hr>
                 <!--Iteration <span x-text="pindex"></span>-->
                 <template x-for="(prg,prgindex) in progress.progress" :key="prgindex">
                     <div  x-data="{curprg: prg, bstate:prg.from}">
                         <table>
                             <tr>
                                 <td>
-                                    <div x-show="true">
+                                    <div x-show="prg.showStates">
                                         <span x-text="prg.showNextEntry"></span>
-                                        <button id="bstate.id" x-text="bstate.name + ' : ' + bstate.actionable + bstate.complete" type="button"
+                                        <button id="bstate.id" x-text="bstate.name" type="button"
                                             @click="recordFromAction(curprg,bstate)"
                                             class="button button4"
                                             :class="{ 'bg-yellow-300': (bstate.actionable && !bstate.complete),
@@ -30,19 +31,18 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div x-show="true">
+                                    <div x-show="prg.showStates">
                                         <table>
                                             <tr>
                                                 <template x-for="(tostate,toindex) in prg.to" :key="toindex">
                                                     <td>
-                                                         <button id="tostate.id" x-text="tostate.name + ' : ' + tostate.actionable + tostate.complete" type="button"
+                                                         <button id="tostate.id" x-text="tostate.name" type="button"
                                                               @click="recordToAction(curprg,tostate)"
                                                               class="button button4"
                                                               :class="{ 'bg-yellow-300': (tostate.actionable && !tostate.complete),
                                                                         'bg-green-500':  (tostate.actionable && tostate.complete),
                                                                         'bg-green-300' : (!tostate.actionable && tostate.complete),
                                                                         'bg-neutral-300': (!tostate.actionable && !tostate.complete)}">
-                                                              <!--:disabled="tostate.complete">-->
                                                          </button>
 
                                                     </td>
@@ -56,7 +56,7 @@
                                 <td>
                                     <div x-show="prg.showNextEntry">
                                         <button x-on:click="showNextState(curprg)" class="btn btn-success"> Show Next </button>
-                                        <!--<button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>-->
+                                        <button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>
                                     </div>
                                </td>
                            </tr>
@@ -93,6 +93,17 @@
             secondOrderLevel:[],
 
             //controlling events
+            skipNext(curprg){
+                /*This function open a dialogbox, enlisted with all states and mark all the states till the selected one as completed
+                1. Propagate a select box with progress elements starting from curprg
+                2. When an item is selected then skip the elements till that state
+                
+                */
+
+            },
+
+
+
 
             showNextState(curprg){
                 /* This function is called when user requests to show the next state.
@@ -102,10 +113,11 @@
                     2.b. if the last element is null then dont show the next state but alert with 'process is completed'
                 */
 
-                console.log('curprg',curprg)
+                //console.log('curprg',curprg)
                 progress = this.progressOfNetwork[this.iteration].progress
                 from_elem = curprg.from
                 to_elems = curprg.to
+
                 null_state = to_elems[0]
                 if (null_state.id == ''){
                     alert('Protocol is completed')
@@ -124,9 +136,12 @@
                     {
                         //show the next progress element and hide the current
                         curprg.showNextEntry = false
+                        curprg.showStates = true
+
                         if(fromindex > -1 && fromindex < progress.length -1)
                         {
                             next_entry = progress[fromindex+1]
+                            next_entry.showStates = true
                             next_entry.showNextEntry = true
 
                         }
@@ -134,9 +149,19 @@
                         {
                             console.log('we are at the last element')
                             to_elems = curprg.to
-                            
-                            //this.populateProgressOfNetwork(false)
+                            if(to_elems.length > 0 && to_elems[to_elems.length -1].id != '')
+                            {
+                                console.log('we are at the last element loppp - take from the to element')
+                                this.populateProgressOfNetwork(false)
+                                /* TO-DO: Ask: should the next iteration be from to states?
+                                for(i = 0; i < to_elems.length; i++)
+                                {
+                                    elem = to_elems[i]
+                                    this.getOutgoingElementsofaState(elem)
+                                }*/
 
+
+                            }
 
                         }
                     }
@@ -145,6 +170,82 @@
 
 
             },
+
+
+            getOutgoingElementsofaState(state){
+                  /*Not Used yet
+                  this function returns the outgoing elements of a state
+                  Input: state
+                  Output: list of outgoing elements
+                  1. get the outgoing elements of a state
+                  2. increment the iteration and
+                  3. append the outgoing elements in the progress of network
+
+                  */
+
+                  //return
+              //console.log('state: ', state)
+              progress = []
+              nextidx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === state.id )
+              console.log('nextidx',nextidx)
+              if(nextidx > -1)
+              {
+                  curiterEntry = this.outgoingBaseLevelNetwork[nextidx]
+
+                  from = this.createNewElement(curiterEntry.from)
+                  to = this.generateToElements(curiterEntry.to)
+
+                  entry = {
+                          from: from,
+                          to: to,
+                          showStates: false,
+                          showNextEntry: true
+                  }
+                  progress.push(entry)
+
+
+                  //TO-DO: generate the rest of the elements from the 'to' element
+
+
+
+
+                  console.log('progress: ', progress)
+
+              //this.iteration ++
+              }
+              return
+              /*
+              //populating the network with the initial states
+                for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
+                {
+                    curiterEntry = this.outgoingBaseLevelNetwork[i]
+                    show = curiterEntry.from.initial_state
+
+
+                    if(show == true)
+                    {
+                        from = this.createNewElement(curiterEntry.from)
+                        to = this.generateToElements(curiterEntry.to)
+
+                        entry = {
+                            from: from,
+                            to: to,
+                            showStates:false,
+                            showNextEntry: true
+                        }
+
+                        progress.push(entry)
+
+                    }
+                }
+
+              */
+
+            },
+
+
+
+
 
             recordToAction(curprg,state){
             /*
@@ -278,6 +379,8 @@
 
                     }
             },
+
+
             checkandUpdateToState(to_element,status){
             //This function updates the status of the 'to' non-actionable elements in previous progress steps
 
@@ -449,6 +552,7 @@
                         entry = {
                             from: from,
                             to: to,
+                            showStates:true,
                             showNextEntry: true
                         }
 
@@ -469,25 +573,16 @@
                         entry = {
                             from: from,
                             to: to,
+                            showStates: false,
                             showNextEntry: false
                         }
-
-                        /*entry = {
-                            from: curiterEntry.from,
-                            to: curiterEntry.to,
-                            showNextEntry: false
-                        }*/
-
                         progress.push(entry)
 
                     }
                 }
 
-
                 if(start == false)
-                {
                     this.iteration++
-                }
 
                 this.progressOfNetwork[this.iteration] = {progress: progress}
                 //this.progressOfNetwork.push({progress: progress})
@@ -575,6 +670,7 @@
                     idx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === from_elem.id)
 
                     showNextEntry = false
+                    showStates = false
                     if(idx == -1)
                     {
                         //element is not found in the outgoingBaseLevelNetwork
@@ -593,7 +689,7 @@
                         to_elems.push(to_elem)
 
 
-                        this.outgoingBaseLevelNetwork.push({from: from_elem, to: to_elems, showNextEntry:showNextEntry})
+                        this.outgoingBaseLevelNetwork.push({from: from_elem, to: to_elems, showStates:showStates, showNextEntry:showNextEntry})
                     }
                     else
                     {
