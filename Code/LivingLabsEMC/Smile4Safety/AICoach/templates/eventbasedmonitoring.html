@@ -8,17 +8,16 @@
 
     <!--Base Network Model-->
     <div>
-        <template x-for="(progress,pindex) in progressOfNetwork" :key="pindex">
+        <template x-for="(progress,pindex) in eventbased_ProgressOfNetwork" :key="pindex">
             <div>
                 <hr>
                 <!--Iteration <span x-text="pindex"></span>-->
                 <template x-for="(prg,prgindex) in progress.progress" :key="prgindex">
-                    <div  x-data="{curprg: prg, bstate:prg.from}">
+                    <div  x-data="{curprg: prg, bstate:prg.from, stateclicked: prg.from, istostate:false}">
                         <table>
                             <tr>
                                 <td>
-                                    <div x-show="prg.showStates">
-                                        <span x-text="prg.showNextEntry"></span>
+                                    <div x-show="true"><!--"prg.showStates">-->
                                         <button id="bstate.id" x-text="bstate.name" type="button"
                                             @click="recordFromAction(curprg,bstate)"
                                             class="button button4"
@@ -31,18 +30,21 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div x-show="prg.showStates">
+                                    <div x-show="true"><!--"prg.showStates">-->
                                         <table>
                                             <tr>
                                                 <template x-for="(tostate,toindex) in prg.to" :key="toindex">
                                                     <td>
                                                          <button id="tostate.id" x-text="tostate.name" type="button"
-                                                              @click="recordToAction(curprg,tostate)"
+                                                              @click="stateclicked = tostate;
+                                                                      istostate = true;
+                                                                      recordToAction(curprg,tostate)"
                                                               class="button button4"
-                                                              :class="{ 'bg-yellow-300': (tostate.actionable && !tostate.complete),
-                                                                        'bg-green-500':  (tostate.actionable && tostate.complete),
-                                                                        'bg-green-300' : (!tostate.actionable && tostate.complete),
-                                                                        'bg-neutral-300': (!tostate.actionable && !tostate.complete)}">
+                                                              :class="{ 'bg-red-500': (tostate.actionable && tostate.fout && !tostate.complete),
+                                                                        'bg-yellow-300': (tostate.actionable && !tostate.complete && !tostate.fout),
+                                                                        'bg-green-500':  (tostate.actionable && tostate.complete && !tostate.fout),
+                                                                        'bg-green-300' : (!tostate.actionable && tostate.complete && !tostate.fout),
+                                                                        'bg-neutral-300': (!tostate.actionable && !tostate.complete && !tostate.fout)}">
                                                          </button>
 
                                                     </td>
@@ -55,8 +57,9 @@
                             <tr>
                                 <td>
                                     <div x-show="prg.showNextEntry">
-                                        <button x-on:click="showNextState(curprg)" class="btn btn-success"> Show Next </button>
-                                        <!--<button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>-->
+                                        <button x-on:click="showNextEventBasedProgressElement(curprg,stateclicked,istostate)" class="btn btn-success"> Show Next </button>
+                                        <!--<button x-on:click="showNextState(curprg)" class="btn btn-success"> Show Next </button>
+                                        <button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>-->
                                     </div>
                                </td>
                            </tr>
@@ -85,7 +88,7 @@
             incomingBaseLevelNetwork:[],        //this structure contains all individual incoming connections
             progressOfNetwork:[],               // this structure contains progress of network
             eventbased_ProgressOfNetwork:[],               // this structure contains progress of network
-
+            language:'nl-NL',
 
             iteration:0,
 
@@ -95,194 +98,77 @@
 
             //controlling events
 
+            sleep(ms)
+            {
+                //function used to put delay
+                var start = new Date().getTime();
+                for (var i = 0; i < 1e7; i++) {
+                 if ((new Date().getTime() - start) > ms){
+                   break;
+                 }
+               }
+            },
+
             play(str){
                         /*Text to speech
                 link used: https://codecoda.com/en/blog/entry/text-to-speech-with-javascript
             */
-
-            str = "Hoe gaat het? Ik ben goed"
+              //return
               if ('speechSynthesis' in window) {
                 let speech = new SpeechSynthesisUtterance(str);
-                speech.lang = 'nl-NL';
+                speech.lang = this.language;
                 speech.pitch = 0.8;
-                speech.rate = 0.7;
+                speech.rate = 0.85;
 
                 window.speechSynthesis.speak(speech);
               }
               else{
                 document.write("Browser not supported")
               }
-
+              this.sleep(10000)
               return
-              /*var msg = new SpeechSynthesisUtterance();
-              var voices = window.speechSynthesis.getVoices();
-              msg.voice = voices[10];
-              msg.voiceURI = "native";
-              msg.volume = 1;
-              msg.rate = 1;
-              msg.pitch = 0.8;
-              msg.text = str;
-              msg.lang = 'en-US';
-              speechSynthesis.speak(msg);*/
-
-            },
-            skipNext(curprg){
-                /*This function open a dialogbox, enlisted with all states and mark all the states till the selected one as completed
-                1. Propagate a select box with progress elements starting from curprg
-                2. When an item is selected then skip the elements till that state
-                */
-
             },
 
-
-            showNextState(curprg){
+            showNextEventBasedProgressElement(curprg,state,istostate){
                 /* This function is called when user requests to show the next state.
-                    1. it gets the next progress element is shown and current element is hidden
-                    2. If last element in progress is reached, then check
+                    it gets the next progress element based upon the clicked state.
+                    1. curprg element is shown but shownext button is hidden
+                    2. get to elemets of the state, and populate the progress element accordingly
                     2.a. if the last element is a state then loop to the next iteration
                     2.b. if the last element is null then dont show the next state but alert with 'process is completed'
+                    //this.eventbased_ProgressOfNetwork[this.iteration] = {progress: progress}
                 */
-                //this.play()
-                //console.log('curprg',curprg)
-                progress = this.progressOfNetwork[this.iteration].progress
+
+                //console.log('state, istostate',state.name, istostate,curprg)
                 from_elem = curprg.from
                 to_elems = curprg.to
+                console.log('from_elem',from_elem,this.eventbased_ProgressOfNetwork)
 
-                null_state = to_elems[0]  //takes the to element and check if it is null
-                if (null_state.id == ''){
-                    alert('Protocol is completed')
-                    return
-                }
+                //console.log('idx',idx)
+                //console.log('from_elem,to_elems::::',from_elem,to_elems)
 
-
-                //1. get the progress element and manipulate it with show and hide status
-                //1.a. proceed only if all the elements are completed
-                fromindex = progress.findIndex(e => e.from === from_elem)
-
-                if(from_elem.complete && from_elem.actionable)
+                if(from_elem.complete)
                 {
-                    idx = to_elems.findIndex(e => e.complete == false)  //if idx > -1 then some element is not complete
-
-                    if(idx < 0)
+                    //if a state is clicked then propagate with respect to next 'to' elements
+                    t_complete = true
+                    idx = to_elems.findIndex(e => e.complete == false)
+                    if(idx > -1)
                     {
-                        //show the next progress element and hide the current
-                        curprg.showNextEntry = false
-                        curprg.showStates = true
-
-                        if(fromindex > -1 && fromindex < progress.length -1)
-                        {
-                            next_entry = progress[fromindex+1]
-                            next_entry.showStates = true
-                            next_entry.showNextEntry = true
-
-                        }
-                        else if(fromindex == progress.length - 1)
-                        {
-                            console.log('we are at the last element')
-                            to_elems = curprg.to
-                            if(to_elems.length > 0 && to_elems[to_elems.length -1].id != '')
-                            {
-                                console.log('we are at the last element loppp - take from the to element')
-                                this.populateProgressOfNetwork(false)
-                                /* TO-DO: Ask: should the next iteration be from to states?
-                                for(i = 0; i < to_elems.length; i++)
-                                {
-                                    elem = to_elems[i]
-                                    this.getOutgoingElementsofaState(elem)
-                                }*/
-
-
-                            }
-
-                        }
-                    }
-                    else //check if the elements are non-actioable then show the next state
-                    {
-                        non_actionable = false
-                        for (var i = 0; i < to_elems.length; i++)
-                        {
-                            to_elem = to_elems[i]
-                            if(to_elem.actionable == false && to_elem.complete == false)
-                                non_actionable = true
-
-                        }
-                        if(non_actionable)
-                        {
-                            //show the next progress element and hide the current
-                            curprg.showNextEntry = false
-                            curprg.showStates = true
-
-                            next_entry = progress[fromindex+1]
-                            next_entry.showStates = true
-                            next_entry.showNextEntry = true
-
-                        }
-
+                        //there is an element which is not complete
+                        t_complete = false
                     }
 
-                }
-                else //check if the elements is non-actionable and non complete enable to show the next progress element
-                {
-                    //show the next progress element and hide the current
-                    curprg.showNextEntry = false
-                    curprg.showStates = true
-
-                    next_entry = progress[fromindex+1]
-                    next_entry.showStates = true
-                    next_entry.showNextEntry = true
+                    if(t_complete)
+                      this.getToElementsofaState(state)
 
                 }
 
-
             },
-
-
-            getOutgoingElementsofaState(state){
-                  /*Not Used yet
-                  this function returns the outgoing elements of a state
-                  Input: state
-                  Output: list of outgoing elements
-                  1. get the outgoing elements of a state
-                  2. increment the iteration and
-                  3. append the outgoing elements in the progress of network
-
-                  */
-
-                  //return
-              //console.log('state: ', state)
-              progress = []
-              nextidx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === state.id )
-              console.log('nextidx',nextidx)
-              if(nextidx > -1)
-              {
-                  curiterEntry = this.outgoingBaseLevelNetwork[nextidx]
-
-                  from = this.createNewElement(curiterEntry.from)
-                  to = this.generateToElements(curiterEntry.to)
-
-                  entry = {
-                          from: from,
-                          to: to,
-                          showStates: false,
-                          showNextEntry: true
-                  }
-                  progress.push(entry)
-
-
-                  //TO-DO: generate the rest of the elements from the 'to' element
-                    console.log('progress: ', progress)
-              }
-              return progress
-
-            },
-
-
-
 
 
             recordToAction(curprg,state){
             /*
-                This function is called when the to element is clicked
+                This function is called when a to element is clicked
                 Input: current progress (curprg) and state (tostate)
                 Output: 1. State is considered to be completed.
                         2. The 'from' states of the coming progress elements are completed
@@ -290,190 +176,180 @@
 
             */
 
-                //console.log(curprg,state)
+                if(!curprg.from.complete)
+                {
+                    alert('Please complete the initial element first')
+                    return
+                }
+                //if another to element in the curprg is already clicked then return
+                to_elems = curprg.to
+                idx = to_elems.findIndex(e => e.complete == true)
+                if(idx > -1)
+                    return
+
+
+                if(!state.actionable)
+                    return
 
                 state.complete = true
-                progress = this.progressOfNetwork[this.iteration].progress
-                idx = progress.findIndex(e => e.from.id == state.id)
+                success_msg = state.successmsg
+                this.play(success_msg)
+                curprg.showNextEntry = false
+                //2. if the state has a non-actionable to state complete it too.
+                //console.log('recordto - state',state)
+                //get from outgoingBaseLevelNetwork then get the respective to elements
+                idx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id == state.id)
+                console.log('idx', idx)
+                //from_elem
                 if(idx > -1)
                 {
-                    //check if we are at the last element of the progress
-                    from_elem = progress[idx].from
-                    if(from_elem.complete)
+                    from_entry = this.outgoingBaseLevelNetwork[idx]
+                    console.log('entry', from_entry)
+
+                    from_elem = from_entry.from
+
+
+                    //WORKKING ON IT //if element is already in progress then increment the iteration
+                   ///////////////this.showNextEventBasedProgressElement(curprg,from_elem,false)
+                   //this.getNextProgressElement(from_elem)
+
+
+                    //working
+                    to_elems = this.getToElementsofaState(from_elem)
+                    //console.log('recordToAction: to_elems', to_elems)
+                    //if there are more actionable elements in curprg make their fout as true=> i.e. the path is not followed
+                    to_elems = curprg.to
+                    for(var i=0; i<to_elems.length;i++)
                     {
-                        //we are at the last element
-                        console.log('we are at the last element')
-                        //shownext here
-                    }
-                    else
-                    {
-                        //2. The 'from' states of the coming progress elements are completed
-                        from_elem = progress[idx].from
-                        from_elem.complete = true
-                        //console.log('from_elem',from_elem)
-                        //2.a. All the 'to' non-actionable states of state as completed. If they dont have more incoming connections
-                        to_elems = progress[idx].to
-                        this.updateToStatesStatus(to_elems,progress) //this function updates the completion status of to states - covers non-actionable states
-                        //3. Mark all the same 'to' states as completed in coming progress elements
-                        this.updateActionableToElements(state,true)
+                        to_elem = to_elems[i]
+                        if((to_elem.actionable == true) && (to_elem.complete == false))
+                        {
+                            to_elem.fout = true
+                        }
                     }
 
+
+
                 }
-                //show next state when the to curprg element is completed
-                this.showNextState(curprg)
+            },
+
+            getNextProgressElement(state) {
+                /*
+                    This function checks whether a from element is already in the eventbased_ProgressOfNetwork if yes then
+                    it increment the iteration then get to elements, otherwise it simply get the to elements
+
+                */
+                ///check if from state already exists then increment the iteration
+                curIterProgress = this.eventbased_ProgressOfNetwork[this.iteration].progress
+                idx = curIterProgress.findIndex(e => e.from.id == state.id)
+
+                if(idx < 0)
+                {
+                    already_present = false
+                    for(i = 0; i < curIterProgress.length; i++)
+                    {
+                        to_elems = curIterProgress[i].to
+                        console.log('to_elems', to_elems)
+                        tidx = to_elems.findIndex(e => e.id  == state.id)
+                        console.log('tidx::::',tidx)
+                        if(tidx > 0)
+                            already_present = true
+                    }
+                    //if(already_present)
+                    //    this.iteration++
+
+                    to_elems = this.getToElementsofaState(state)
+                }
+
+
 
             },
 
             recordFromAction(curprg,state){
-            /*
-                This function is called when the from element is clicked
-                Input: current progress (curprg) and state (bstate)
-                Output: 1. State is considered to be completed.
-                        2. All the 'to' non-actionable states are completed. If they dont have more incoming connections
-                        3. all the 'to' states of the previous progress elements are completed
-                        4. the next progress element is shown
+                 /*
+                    This function is called when a from element is clicked
+                    Input: current progress (curprg) and state (bstate)
+                    Output: 1. State is considered to be completed.
+                            2. All the 'to' non-actionable states are completed. If they dont have more incoming connections
+                            3. all the 'to' states of the previous progress elements are completed
+                            4. the next progress element is shown
+                */
 
-            */
+                if(!state.actionable)
+                    return
+
+                //1. State is considered to be completed.
                 state.complete = true
+                this.play(state.successmsg)
 
                 //2. All the 'to' non-actionable states are completed. If they dont have more incoming connections
-                progress = this.progressOfNetwork[this.iteration].progress
-                //console.log('progress', progress)
-                idx = progress.findIndex(e => e.from.id == state.id)
+                curIterProgress = this.eventbased_ProgressOfNetwork[this.iteration].progress
+                idx = curIterProgress.findIndex(e => e.from.id == state.id)
                 //console.log('idx',idx)
                 if(idx > -1)
                 {
-                    entry_completed = progress[idx]
-                    //2.a. mark the to elements as completed
-                    to_elems = entry_completed.to
-                    this.updateToStatesStatus(to_elems,progress) //this function updates the completion status of to states - covers non-actionable states
+                    progress_elements = curIterProgress[idx].to
+                    //console.log('progress_elements',progress_elements)
 
-                    //3. all the same 'to' states of the previous progress elements are completed
-                    //this.updateActionableToElements(entry_completed.from)   //this function updates the completion status of to states - covers actionable states
-                }
-                console.log('shownext state is called')
-                this.showNextState(curprg)
-
-            },
-
-            updateActionableToElements(entry,ifto = false){
-                //This function will set the status of actionable states that were used earlier
-                // It should update only the status of
-
-                if(!ifto)
-                    return
-
-                progress = this.progressOfNetwork[this.iteration].progress
-                //console.log('updateActionableToElements - entry', entry)
-
-                status = entry.complete
-                for(var i = 0; i < progress.length; i++)
-                {
-                    to_elems = progress[i].to
-                    idx = to_elems.findIndex(e => e.id == entry.id)
-                    if(idx > -1)
-                    {
-                        to_elems[idx].complete = status
-                        //console.log('updateActionableToElements - idx', idx)
-                    }
-                }
-            },
-
-            updateToStatesStatus(to_elems,progress){
-                    /* This function updateToStatesStatus of the to elements. It takes the to elements (array).
-                        1. Get each element in the array
-                        2. Check its causal impacts - if all states are complete
-                        3. if the state is not actionable then update the status of
-                    */
-
-                    for(var i = 0; i < to_elems.length; i++)
-                    {
-                        to_element = to_elems[i]
-                        if(to_element.id != '')
+                    for(i = 0; i < progress_elements.length; i++) {
+                        progress_element = progress_elements[i]
+                        if(progress_element.actionable == false)
                         {
-                            //console.log('updateToStatesStatus: to_element name', to_element.name)
-                            status = this.checkCausalImpact(to_element)
+                            //2.a.a. TO-DO: check if there is another element leading to the progress_element.
 
-                            var status = (status === 'true');
-                            if(!to_element.actionable)
+                            //If it is completed then set the status as complete.
+                            if(progress_element.id.length > 0)  //if it is a valid element then check causal impact, otherwise mark it as completed
                             {
-                                to_element.complete = status
-                                //mark same element which were previously set as not completed.
-                                this.checkandUpdateToState(to_element,status)
-                                //mark the 'from' elements in the progress elements as completed
-                                this.updateFromStateStatus(to_element, status, progress)
+                                completed = this.checkCausalImpact(progress_element)
+                                //console.log('completed',completed)
+                                if(completed)
+                                {
+                                    progress_element.complete = state.complete
+                                    //2.a.a.a. set the to element(s) status in previous iterations for a state as to element(s)
+                                    for(let i = 0; i < curIterProgress.length; i++)
+                                    {
+                                        toelems = curIterProgress[i].to
+                                        toid = toelems.findIndex(e => e.id == progress_element.id)
+                                        if(toid > -1)
+                                        {
+                                            toelems[toid].complete = progress_element.complete
+                                        }
+                                    }
+                                    //2.a.a.b. set the showNext as true
+                                    curIterProgress[idx].showNext = true
+                                }
+                            }
+                            else    //last node
+                            {
+                                //2.a.b. set the status as complete and showNext as false
+                                progress_element.complete = state.complete
+                                curIterProgress[idx].showNext = false
                             }
                         }
-                        else
-                        {
-                            //last node is achieved, update the complete status if incoming state is completed
-
-                            status = this.checkCausalImpact(to_element)
-                            var status = (status === 'true');
-                            to_element.complete = status
-
-                            //console.log('updateToStatesStatus: to_element name,status', to_element.name,status)
-
-                        }
-
-                    }
-            },
 
 
-            checkandUpdateToState(to_element,status){
-            //This function updates the status of the 'to' non-actionable elements in previous progress steps
 
-                //console.log('checkandUpdateToState: to_element name,status', to_element.name,status)
-                progress = this.progressOfNetwork[this.iteration].progress
-                var status = (status === 'true');
-                if(status)
-                    for(var i = 0; i < progress.length; i++)
-                    {
-                       from_elem = progress[i].from
-                       completed = from_elem.complete
-
-                       to_elems = progress[i].to
-                       idx = to_elems.findIndex(e => e.id == to_element.id)
-                       if(idx > -1)
-                       {
-                            elem = to_elems[idx]
-                            elem.complete = status
-                            //console.log('checkandUpdateToState: elem,status',elem,status)
-                       }
 
                     }
 
-            },
-            updateFromStateStatus(to_element, status, progress){
-                //This function updates the status of a state in progress / current iteration progress
-                //1. update the status of 'from' states
-
-                //console.log('updateFromStateStatus: to_element name', to_element.name)
-
-                idx = progress.findIndex(e => e.from.id == to_element.id)
-                //console.log('idx: ', idx)
-                if(idx > -1)
-                {
-                    progress[idx].from.complete = status
-                    //console.log('updateFromStateStatus:progress', progress[idx])
-                    //update the status of 'to' states
-                    to_elements = progress[idx].to
-
-                    //console.log('updateFromStateStatus: idx', idx,to_elements)
-                    this.updateToStatesStatus(to_elements,progress)
                 }
 
+                //console.log('HH idx:',idx,curprg)
+                this.showNextEventBasedProgressElement(curprg,state,false)
+
             },
+
+            //event related functions
 
             checkCausalImpact(to_element){
                 // This function checks the causal impacts from the other (incoming states).
                 //Input: to_element: an element that has to change the completion status based on the input state
                 //Output: returns true if all incoming connections are also complete
 
-                progress = this.progressOfNetwork[this.iteration].progress
+                progress = this.eventbased_ProgressOfNetwork[this.iteration].progress
                 status = true
                 index = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == to_element.id)
-                //console.log('updateFromStateStatus:index', index)
+                //console.log('checkCausalImpact:index', index)
                 if(index > -1)
                 {
                     incoming_states = this.incomingBaseLevelNetwork[index].incoming_states
@@ -527,6 +403,90 @@
                 return status
             },
 
+            getToElementsofaState(state){
+                  /*
+                  this function returns the to elements of a state
+                  Input: state
+                  Output: list of outgoing elements
+                  1. get the outgoing elements of a state
+                  2 will think. increment the iteration and
+                  2. append the outgoing elements in the progress of network
+
+                  */
+
+                progress = []
+                nextidx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === state.id )
+                //console.log('state,nextidx',state,nextidx)
+                if(nextidx > -1)
+                {
+                  //1. get the to elements of the 'from' state.
+                  //1.a. get the outgoing elements of each of the to states
+                  //1.b. append the outgoing elements in the progress of network
+
+                  to_elems =  this.outgoingBaseLevelNetwork[nextidx].to
+                  for(let i = 0; i < to_elems.length;i++)
+                  {
+                    from_state = to_elems[i]
+                    idx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === from_state.id )
+                    //console.log('from_state, idx =',from_state, idx)
+                    if(idx > -1)
+                    {
+
+                        //create new entry and update its status
+                        elem = this.outgoingBaseLevelNetwork[idx]
+                        //console.log('entry =',elem)
+                        entry = this.createNewEntry(elem)
+                        from_elem = entry.from
+                        if(!from_elem.actionable)
+                        {
+                            completed = this.checkCausalImpact(from_elem)
+                            entry.from.complete = completed
+                        }
+
+                        to_elems = entry.to
+                        for(i = 0; i < to_elems.length; i++)
+                        {
+                            to_elem = to_elems[i]
+                            if(!to_elem.actionable)
+                                to_elems[i].complete = true
+
+                        }
+                        this.eventbased_ProgressOfNetwork[this.iteration].progress.push(entry)
+                    }
+                    else
+                    {
+                        //check if this is the last entry then show it as completed
+
+
+                        if(from_state.id == '')
+                        {
+
+                            from = this.createNewElement(from_state)
+                            from.complete = true
+                            to = []
+                            entry = {
+                                from: from,
+                                to: to,
+                                showStates:true,
+                                showNextEntry: false
+                            }
+
+                            this.eventbased_ProgressOfNetwork[this.iteration].progress.push(entry)
+
+
+
+
+
+
+
+                        }
+                    }
+                  }
+                }
+
+              return progress
+
+            },
 
 
             //initializations
@@ -552,13 +512,17 @@
                  //console.log(baseModel)
                  this.generateIncomingBaseLevelNetwork(baseModel)
                  this.generateOutgoingBaseLevelNetwork(baseModel)
-                 this.populateProgressOfNetwork()
+
+
+                 //initialization of eventbased_ProgressOfNetwork
+                 this.initialize_eventBasedProgress()
+
 
             },//init
 
             initialize_eventBasedProgress()
             {
-                /* This function populates the network to be displayed
+                /* This function populates the network to be displayed for the initial states
                 */
 
                 progress = []
@@ -568,30 +532,42 @@
                 {
                     curiterEntry = this.outgoingBaseLevelNetwork[i]
                     show = curiterEntry.from.initial_state
-
-
                     if(show == true)
                     {
-                        from = this.createNewElement(curiterEntry.from)
-                        to = this.generateToElements(curiterEntry.to)
-
-                        entry = {
-                            from: from,
-                            to: to,
-                            showStates:true,
-                            showNextEntry: true
-                        }
-
+                        entry = this.createNewEntry(curiterEntry)
                         progress.push(entry)
-
-                    }
+                   }
                 }
                 this.eventbased_ProgressOfNetwork[this.iteration] = {progress: progress}
 
             },
 
+
+            createNewEntry(curiterEntry){
+                /*this function creates an entry with new elements in it.
+                This takes an entry having from, to and shownext and showstates parameters
+                Target is to keep each state independent*/
+
+                from = this.createNewElement(curiterEntry.from)
+                to = this.generateToElements(curiterEntry.to)
+                //completed = this.updateStateStatus(from)
+                //console.log('completed',completed)
+
+                entry = {
+                           from: from,
+                           to: to,
+                           showStates:true,
+                           showNextEntry: true
+                       }
+
+                return entry
+            },
+
             generateToElements(entry){
-                /* This function generates new progress Element*/
+                /* This function generates new progress Elements
+                Input: an entry
+                Output: the 'to' states of the entry as new elements
+                */
 
                 to = []
                 for(var i = 0; i < entry.length; i++)
@@ -603,63 +579,10 @@
                 return to
             },
 
-            populateProgressOfNetwork(start = true){
-                /* This function populates the network to be displayed
-                */
-
-                progress = []
-
-                //populating the network with the initial states
-                for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
-                {
-                    curiterEntry = this.outgoingBaseLevelNetwork[i]
-                    show = curiterEntry.from.initial_state
 
 
-                    if(show == true)
-                    {
-                        from = this.createNewElement(curiterEntry.from)
-                        to = this.generateToElements(curiterEntry.to)
 
-                        entry = {
-                            from: from,
-                            to: to,
-                            showStates:true,
-                            showNextEntry: false
-                        }
 
-                        progress.push(entry)
-
-                    }
-                }
-                //populating the network with the rest of the states
-                for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
-                {
-                    curiterEntry = this.outgoingBaseLevelNetwork[i]
-                    show = curiterEntry.from.initial_state
-
-                    if(show != true)
-                    {
-                        from = this.createNewElement(curiterEntry.from)
-                        to = this.generateToElements(curiterEntry.to)
-                        entry = {
-                            from: from,
-                            to: to,
-                            showStates: false,
-                            showNextEntry: false
-                        }
-                        progress.push(entry)
-
-                    }
-                }
-
-                if(start == false)
-                    this.iteration++
-
-                this.progressOfNetwork[this.iteration] = {progress: progress}
-                //this.progressOfNetwork.push({progress: progress})
-
-            },
 
             generateIncomingBaseLevelNetwork(model){
                    //Function to extract the incoming states to make an incoming graph
@@ -833,8 +756,10 @@
                    if (!found)
                    {
                       toelem = this.createNewElement() //process completed
-                      toelem.name = 'Process completed'
-                      toelem.username = 'Process completed'
+
+                      toelem.name = 'Klaar'
+                      toelem.username = 'Klaar'
+
                       this.individualBaseLevelOutConnections.push({'from':state, 'to':toelem})
                    }
 
@@ -856,10 +781,13 @@
                 speed: 0,
                 successmsg: [],
                 warningmsg: [],
-                initial_state:false
+                initial_state:false,
+                fout: false
+
             }
             if(element)
             {
+                //console.log('element id',element)
                 var complete = (element.complete === 'true');
                 elem = {
                 id: element.id,
@@ -875,8 +803,10 @@
                 speed: element.speed,
                 successmsg: element.successmsg,
                 warningmsg: element.warningmsg,
-                initial_state: false
+                initial_state: false,
+                fout: false
                 }
+
             }
             return elem
           }

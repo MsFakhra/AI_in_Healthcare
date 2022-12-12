@@ -56,7 +56,7 @@
                                 <td>
                                     <div x-show="prg.showNextEntry">
                                         <button x-on:click="showNextState(curprg)" class="btn btn-success"> Show Next </button>
-                                        <!--<button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>-->
+                                        <button x-on:click="skipNext(curprg)" class="btn btn-warning"> Skip Next </button>
                                     </div>
                                </td>
                            </tr>
@@ -84,7 +84,6 @@
             outgoingBaseLevelNetwork:[],        // this structure contains causal connection X1->X2,X3 and so on
             incomingBaseLevelNetwork:[],        //this structure contains all individual incoming connections
             progressOfNetwork:[],               // this structure contains progress of network
-            eventbased_ProgressOfNetwork:[],               // this structure contains progress of network
 
 
             iteration:0,
@@ -135,6 +134,8 @@
             },
 
 
+
+
             showNextState(curprg){
                 /* This function is called when user requests to show the next state.
                     1. it gets the next progress element is shown and current element is hidden
@@ -159,10 +160,9 @@
                 //1.a. proceed only if all the elements are completed
                 fromindex = progress.findIndex(e => e.from === from_elem)
 
-                if(from_elem.complete && from_elem.actionable)
+                if(from_elem.complete)
                 {
                     idx = to_elems.findIndex(e => e.complete == false)  //if idx > -1 then some element is not complete
-
                     if(idx < 0)
                     {
                         //show the next progress element and hide the current
@@ -196,40 +196,6 @@
 
                         }
                     }
-                    else //check if the elements are non-actioable then show the next state
-                    {
-                        non_actionable = false
-                        for (var i = 0; i < to_elems.length; i++)
-                        {
-                            to_elem = to_elems[i]
-                            if(to_elem.actionable == false && to_elem.complete == false)
-                                non_actionable = true
-
-                        }
-                        if(non_actionable)
-                        {
-                            //show the next progress element and hide the current
-                            curprg.showNextEntry = false
-                            curprg.showStates = true
-
-                            next_entry = progress[fromindex+1]
-                            next_entry.showStates = true
-                            next_entry.showNextEntry = true
-
-                        }
-
-                    }
-
-                }
-                else //check if the elements is non-actionable and non complete enable to show the next progress element
-                {
-                    //show the next progress element and hide the current
-                    curprg.showNextEntry = false
-                    curprg.showStates = true
-
-                    next_entry = progress[fromindex+1]
-                    next_entry.showStates = true
-                    next_entry.showNextEntry = true
 
                 }
 
@@ -270,9 +236,41 @@
 
 
                   //TO-DO: generate the rest of the elements from the 'to' element
-                    console.log('progress: ', progress)
+
+
+
+
+                  console.log('progress: ', progress)
+
+              //this.iteration ++
               }
-              return progress
+              return
+              /*
+              //populating the network with the initial states
+                for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
+                {
+                    curiterEntry = this.outgoingBaseLevelNetwork[i]
+                    show = curiterEntry.from.initial_state
+
+
+                    if(show == true)
+                    {
+                        from = this.createNewElement(curiterEntry.from)
+                        to = this.generateToElements(curiterEntry.to)
+
+                        entry = {
+                            from: from,
+                            to: to,
+                            showStates:false,
+                            showNextEntry: true
+                        }
+
+                        progress.push(entry)
+
+                    }
+                }
+
+              */
 
             },
 
@@ -553,42 +551,9 @@
                  this.generateIncomingBaseLevelNetwork(baseModel)
                  this.generateOutgoingBaseLevelNetwork(baseModel)
                  this.populateProgressOfNetwork()
+                 //this.populateProgressOfNetwork(false)
 
             },//init
-
-            initialize_eventBasedProgress()
-            {
-                /* This function populates the network to be displayed
-                */
-
-                progress = []
-
-                //populating the network with the initial states
-                for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
-                {
-                    curiterEntry = this.outgoingBaseLevelNetwork[i]
-                    show = curiterEntry.from.initial_state
-
-
-                    if(show == true)
-                    {
-                        from = this.createNewElement(curiterEntry.from)
-                        to = this.generateToElements(curiterEntry.to)
-
-                        entry = {
-                            from: from,
-                            to: to,
-                            showStates:true,
-                            showNextEntry: true
-                        }
-
-                        progress.push(entry)
-
-                    }
-                }
-                this.eventbased_ProgressOfNetwork[this.iteration] = {progress: progress}
-
-            },
 
             generateToElements(entry){
                 /* This function generates new progress Element*/
@@ -625,7 +590,7 @@
                             from: from,
                             to: to,
                             showStates:true,
-                            showNextEntry: false
+                            showNextEntry: true
                         }
 
                         progress.push(entry)

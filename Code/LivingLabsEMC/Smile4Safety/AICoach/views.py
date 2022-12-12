@@ -8,14 +8,17 @@ from .models import ModelSpecification
 # Create your views here.
 def main(request):
 
-    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0] #pg11 model specification
+    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
 
+    #modelobj = ModelSpecification.objects.get(model_id=36)  # ss specification
+    #modelobj = ModelSpecification.objects.get(model_id=40)  # works with eventbasedmonitoring recursive - english model specification
+    #modelobj = ModelSpecification.objects.get(model_id=39)  # use this model it has x1,x2 specification without recursive works with monitor
 
     #modelobj = ModelSpecification.objects.get(model_id=34)  # use this model it has x1,x2 specification without recursive
     #modelobj = ModelSpecification.objects.get(model_id=32)  # use this model for recursive and monitoringv1.html it has x1,x2 specification
 
     specs = modelobj.model_specification
-
+    '''
     ##formatting string to make it json
     withoutspaces = specs.replace(" ", "")  # removes spaces
     rightcommas = withoutspaces.replace("'", '"')  # right inverted commas
@@ -23,7 +26,9 @@ def main(request):
     withoutFalse = withoutTrue.replace("False", '"False"')  # False to 'False'
 
     jsonData = json.loads(withoutFalse)
+    '''
 
+    jsonData = json.loads(specs)
     dict_model = {
         'id': modelobj.model_id,
         'name': modelobj.model_name,
@@ -32,8 +37,11 @@ def main(request):
 
     dataJSON = json.dumps(dict_model)  # dict to str
 
-    return render(request, 'monitoring.html', {'data': dataJSON})
-    #return render(request, 'monitoringv1.html', {'data': dataJSON})  #works with model 32
+    return render(request, 'eventbasedmonitoring.html', {'data': dataJSON})  #100% working with one direction tested
+    #return render(request, 'monitoring.html', {'data': dataJSON})  #100% working with one direction tested
+
+    #return render(request, 'monitoringv2.html', {'data': dataJSON})  #new working version with recordfrom and recordto
+    #return render(request, 'monitoringv1.html', {'data': dataJSON})  #oldest working version
 
     #checked
     #return render(request, 'createmodel.html', {'data': dataJSON})
@@ -108,12 +116,14 @@ def actionspecification(request):
     specs = modelobj.model_specification
 
     ##formatting string to make it json
-    withoutspaces = specs.replace(" ", "")  #removes spaces
+    '''withoutspaces = specs.replace(" ", "")  #removes spaces
     rightcommas = withoutspaces.replace("'", '"')   #right inverted commas
     withoutTrue = rightcommas.replace("True", '"True"') #True to 'True'
     withoutFalse = withoutTrue.replace("False", '"False"')  #False to 'False'
-
+    
     jsonData = json.loads(withoutFalse)
+    '''
+    jsonData = json.loads(specs)
 
     dict_model = {
         'id': modelobj.model_id,
