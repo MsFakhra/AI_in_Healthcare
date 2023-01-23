@@ -1,0 +1,478 @@
+[
+ {
+   "id": 1,
+   "name": " eucl",
+   "fullname": "euclidean ",
+   "numberOfPossibleParams": 2,
+   "paramNames": " order n & scaling factor"
+ },
+ {
+   "id": 2,
+   "name": " alogistic",
+   "fullname": " advance logistic sum",
+   "numberOfPossibleParams": 2,
+   "paramNames": " steepness & threshold"
+ },
+ {
+   "id": 3,
+   "name": " hebb",
+   "fullname": " hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistence factor"
+ },
+ {
+   "id": 4,
+   "name": " scm",
+   "fullname": " state-connection modulation",
+   "numberOfPossibleParams": 1,
+   "paramNames": " modulation factor"
+ },
+ {
+   "id": 5,
+   "name": " slhomo",
+   "fullname": " simple linear homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 6,
+   "name": " sqhomo",
+   "fullname": " simple quadratic homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 7,
+   "name": " alhomo",
+   "fullname": " advanced linear homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 8,
+   "name": " aqhomo",
+   "fullname": " advanced quadratic homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 9,
+   "name": " sconnhebb",
+   "fullname": " squared connection hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistance factor"
+ },
+ {
+   "id": 10,
+   "name": " srconnhebb",
+   "fullname": " square-root connection hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistance factor"
+ },
+ {
+   "id": 11,
+   "name": " srstateshebb",
+   "fullname": " square-root state values hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistance factor"
+ },
+ {
+   "id": 12,
+   "name": " sstateshebb",
+   "fullname": " squared state values hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistance factor"
+ },
+ {
+   "id": 13,
+   "name": "slogistic",
+   "fullname": " simple logistic sum",
+   "numberOfPossibleParams": 2,
+   "paramNames": " steepness & threshold"
+ },
+ {
+   "id": 14,
+   "name": "cubehomo",
+   "fullname": " cubic homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 15,
+   "name": "exphomo",
+   "fullname": " exponential homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " steepness & tipping point"
+ },
+ {
+   "id": 16,
+   "name": "log1homo",
+   "fullname": " logistic homophily 1 ",
+   "numberOfPossibleParams": 2,
+   "paramNames": "  steepness & tipping point"
+ },
+ {
+   "id": 17,
+   "name": "log2homo",
+   "fullname": " logistic homophily 2",
+   "numberOfPossibleParams": 3,
+   "paramNames": " amplification factor & steepness & tipping point"
+ },
+ {
+   "id": 18,
+   "name": "sinhomo",
+   "fullname": "sinus homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 19,
+   "name": "tanhomo",
+   "fullname": "tangent homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": " amplification factor & tipping point"
+ },
+ {
+   "id": 20,
+   "name": "invtan",
+   "fullname": " scaled inverse tangent sum",
+   "numberOfPossibleParams": 1,
+   "paramNames": " scaling factor"
+ },
+ {
+   "id": 21,
+   "name": "id",
+   "fullname": "identity",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 22,
+   "name": "complementid",
+   "fullname": " complement identity",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 23,
+   "name": "product",
+   "fullname": " product",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 24,
+   "name": "coproduct",
+   "fullname": " coproduct",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 25,
+   "name": "smin",
+   "fullname": " scaled minimum",
+   "numberOfPossibleParams": 1,
+   "paramNames": " scaling factor"
+ },
+ {
+   "id": 26,
+   "name": "smax",
+   "fullname": "scaled maximum",
+   "numberOfPossibleParams": 1,
+   "paramNames": " scaling factor"
+ },
+ {
+   "id": 27,
+   "name": "aproduct",
+   "fullname": "advanced product",
+   "numberOfPossibleParams": 1,
+   "paramNames": " weight"
+ },
+ {
+   "id": 28,
+   "name": "aminmax",
+   "fullname": "advanced min-max",
+   "numberOfPossibleParams": 1,
+   "paramNames": " weight"
+ },
+ {
+   "id": 29,
+   "name": "multicriteriahomo",
+   "fullname": " multicriteria homophily",
+   "numberOfPossibleParams": 2,
+   "paramNames": "amplification factor & tipping point"
+ },
+ {
+   "id": 30,
+   "name": "ssum",
+   "fullname": " scaled sum",
+   "numberOfPossibleParams": 1,
+   "paramNames": " scaling factor"
+ },
+ {
+   "id": 31,
+   "name": "adnormsum",
+   "fullname": "advanced normalised sum",
+   "numberOfPossibleParams": 0,
+   "paramNames": " NONE"
+ },
+ {
+   "id": 32,
+   "name": "adnormeucln",
+   "fullname": "advanced normalised Euclidean",
+   "numberOfPossibleParams": 1,
+   "paramNames": " order n"
+ },
+ {
+   "id": 33,
+   "name": "sgeomean",
+   "fullname": "scaled geometric mean",
+   "numberOfPossibleParams": 1,
+   "paramNames": " scaling factor"
+ },
+ {
+   "id": 34,
+   "name": "s2scm",
+   "fullname": "state-connection modulation shifted",
+   "numberOfPossibleParams": 1,
+   "paramNames": " modulation factor"
+ },
+ {
+   "id": 35,
+   "name": "stepmod",
+   "fullname": "step-modulo",
+   "numberOfPossibleParams": 2,
+   "paramNames": " repeated time duration & tipping point"
+ },
+ {
+   "id": 36,
+   "name": "stepmodopp",
+   "fullname": "opposite step-modulo",
+   "numberOfPossibleParams": 2,
+   "paramNames": " repeated time duration & tipping point"
+ },
+ {
+   "id": 37,
+   "name": "hebbneg",
+   "fullname": "hebbian learning for negative weights",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistence"
+ },
+ {
+   "id": 38,
+   "name": "sigmoid",
+   "fullname": "sigmoid sum function",
+   "numberOfPossibleParams": 2,
+   "paramNames": " steepness & threshold"
+ },
+ {
+   "id": 39,
+   "name": "hebbqual",
+   "fullname": "qualitative hebbian learning",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistence"
+ },
+ {
+   "id": 40,
+   "name": "max2and1bcfs",
+   "fullname": " XXXXXXXXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 41,
+   "name": "boundedgrowth",
+   "fullname": " bounded growth by Verhulst’s classical model",
+   "numberOfPossibleParams": 1,
+   "paramNames": "carrying capacity"
+ },
+ {
+   "id": 42,
+   "name": "min_alog_composition",
+   "fullname": " Composition of alogistic and id function by minimum function smin1",
+   "numberOfPossibleParams": 2,
+   "paramNames": " steepness & threshold"
+ },
+ {
+   "id": 43,
+   "name": "steponce",
+   "fullname": " one period of activation ",
+   "numberOfPossibleParams": 2,
+   "paramNames": " start time & end time"
+ },
+ {
+   "id": 44,
+   "name": "scalemap",
+   "fullname": " mapping activation scale",
+   "numberOfPossibleParams": 2,
+   "paramNames": " lower bound & upper bound"
+ },
+ {
+   "id": 45,
+   "name": "scalemapopp",
+   "fullname": "opposite mapping activation scale",
+   "numberOfPossibleParams": 2,
+   "paramNames": " lower bound & upper bound"
+ },
+ {
+   "id": 46,
+   "name": "posdev",
+   "fullname": "positive deviation of V from norm",
+   "numberOfPossibleParams": 1,
+   "paramNames": " norm"
+ },
+ {
+   "id": 47,
+   "name": "negde",
+   "fullname": "negative deviation of V from norm",
+   "numberOfPossibleParams": 1,
+   "paramNames": " norm"
+ },
+ {
+   "id": 48,
+   "name": "steps",
+   "fullname": "XXXXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "XXXXX"
+ },
+ {
+   "id": 49,
+   "name": "maxhebb",
+   "fullname": " maximum hebbian",
+   "numberOfPossibleParams": 1,
+   "paramNames": " persistence factor"
+ },
+ {
+   "id": 50,
+   "name": "maxmin2",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 2,
+   "paramNames": "first part p of values & second part q for min"
+ },
+ {
+   "id": 51,
+   "name": "maxmin3",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 2,
+   "paramNames": "first part p of values & second part q for min"
+ },
+ {
+   "id": 52,
+   "name": "randsteponce",
+   "fullname": " random step once",
+   "numberOfPossibleParams": 2,
+   "paramNames": " start & end"
+ },
+ {
+   "id": 53,
+   "name": "randstepmod",
+   "fullname": " XXXXXX",
+   "numberOfPossibleParams": 4,
+   "paramNames": " time duration & tipping point & persistance & lower bound"
+ },
+ {
+   "id": 54,
+   "name": "compdiff",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 55,
+   "name": "randstepmodopp",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 56,
+   "name": "swcorrcoeff",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 57,
+   "name": "randstepmodalt",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 58,
+   "name": "compdiffnorm",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 59,
+   "name": "swcorrcoeff0",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 60,
+   "name": "compdifflag",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 61,
+   "name": "compdifflag1av",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 62,
+   "name": "compdifflag2av",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 63,
+   "name": "swcorrcoeffsu",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 64,
+   "name": "transdetav",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 65,
+   "name": "transdetmaxmin",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 66,
+   "name": "transabs",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 67,
+   "name": "transdetavabs",
+   "fullname": "XXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ },
+ {
+   "id": 68,
+   "name": "transdetstdev",
+   "fullname": "XXXX",
+   "numberOfPossibleParams": 0,
+   "paramNames": "NONE"
+ }
+]

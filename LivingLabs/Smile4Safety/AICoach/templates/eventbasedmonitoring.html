@@ -8,7 +8,7 @@
 
     <!--Base Network Model-->
     <div>
-        <template x-for="(progress,pindex) in eventbased_ProgressOfNetwork" :key="pindex">
+        <template x-for="(progress,pindex) in progressOfNetwork" :key="pindex">
             <div>
                 <hr>
                 <!--Iteration <span x-text="pindex"></span>-->
@@ -87,7 +87,7 @@
             outgoingBaseLevelNetwork:[],        // this structure contains causal connection X1->X2,X3 and so on
             incomingBaseLevelNetwork:[],        //this structure contains all individual incoming connections
             progressOfNetwork:[],               // this structure contains progress of network
-            eventbased_ProgressOfNetwork:[],               // this structure contains progress of network
+            progressOfNetwork:[],               // this structure contains progress of network
             language:'nl-NL',
 
             iteration:0,
@@ -109,16 +109,17 @@
                }
             },
 
-            play(str){
+            play(str, pitch,rate){
                         /*Text to speech
                 link used: https://usefulangle.com/post/98/javascript-text-to-speech
             */
               //return
+              console.log('pitch',pitch);
               if ('speechSynthesis' in window) {
                 let speech = new SpeechSynthesisUtterance(str);
                 speech.lang = this.language;
-                speech.pitch = 0.8;
-                speech.rate = 0.85;
+                speech.pitch = pitch;
+                speech.rate = rate;
 
                 window.speechSynthesis.speak(speech);
               }
@@ -136,13 +137,13 @@
                     2. get to elemets of the state, and populate the progress element accordingly
                     2.a. if the last element is a state then loop to the next iteration
                     2.b. if the last element is null then dont show the next state but alert with 'process is completed'
-                    //this.eventbased_ProgressOfNetwork[this.iteration] = {progress: progress}
+                    //this.progressOfNetwork[this.iteration] = {progress: progress}
                 */
 
                 //console.log('state, istostate',state.name, istostate,curprg)
                 from_elem = curprg.from
                 to_elems = curprg.to
-                console.log('from_elem',from_elem,this.eventbased_ProgressOfNetwork)
+                console.log('from_elem',from_elem,this.progressOfNetwork)
 
                 //console.log('idx',idx)
                 //console.log('from_elem,to_elems::::',from_elem,to_elems)
@@ -176,24 +177,57 @@
 
             */
 
+                //if from state is complete then move on
                 if(!curprg.from.complete)
                 {
                     alert('Please complete the initial element first')
                     return
                 }
+
+                //if all from states are clicked then move on
+
+                completed = this.checkCausalImpact(progress_element)
+                //console.log('completed',completed)
+                if(!completed)
+                {
+                   alert('Please complete the initial element first')
+                   return
+                }
+
                 //if another to element in the curprg is already clicked then return
                 to_elems = curprg.to
                 idx = to_elems.findIndex(e => e.complete == true)
                 if(idx > -1)
                     return
 
-
-                if(!state.actionable)
+                //if it is not monitoring state then return
+                if(!state.monitoringstate)
                     return
 
+
+
+
                 state.complete = true
+                // select similar states in the current progress to mark them as completed
+                for(var i = 0; i < this.progressOfNetwork[this.iteration].progress.length;i++)
+                {
+                    to_elems = this.progressOfNetwork[this.iteration].progress[i].to
+                    tidx = to_elems.findIndex(e => e.id == state.id)
+                    if(tidx > -1 && to_elems[tidx].complete == false )
+                    {
+                        this.progressOfNetwork[this.iteration].progress[i].to[tidx].complete = true
+                    }
+                }
+
                 success_msg = state.successmsg
-                this.play(success_msg)
+                pitch = 0.8
+                rate = 0.85
+                if(state.sentimentlbl == 'Negative')
+                    pitch = 0.9
+                    rate = 0.7
+
+                this.play(state.successmsg,pitch,rate)
+
                 curprg.showNextEntry = false
                 //2. if the state has a non-actionable to state complete it too.
                 //console.log('recordto - state',state)
@@ -235,12 +269,12 @@
 
             getNextProgressElement(state) {
                 /*
-                    This function checks whether a from element is already in the eventbased_ProgressOfNetwork if yes then
+                    This function checks whether a from element is already in the progressOfNetwork if yes then
                     it increment the iteration then get to elements, otherwise it simply get the to elements
 
                 */
                 ///check if from state already exists then increment the iteration
-                curIterProgress = this.eventbased_ProgressOfNetwork[this.iteration].progress
+                curIterProgress = this.progressOfNetwork[this.iteration].progress
                 idx = curIterProgress.findIndex(e => e.from.id == state.id)
 
                 if(idx < 0)
@@ -277,13 +311,23 @@
 
                 if(!state.actionable)
                     return
+                if(state.complete)
+                    return
+
 
                 //1. State is considered to be completed.
                 state.complete = true
-                this.play(state.successmsg)
+
+                pitch = 0.8
+                rate = 0.85
+                if(state.sentimentlbl == 'Negative')
+                    pitch = 0.9
+                    rate = 0.7
+
+                this.play(state.successmsg,pitch,rate)
 
                 //2. All the 'to' non-actionable states are completed. If they dont have more incoming connections
-                curIterProgress = this.eventbased_ProgressOfNetwork[this.iteration].progress
+                curIterProgress = this.progressOfNetwork[this.iteration].progress
                 idx = curIterProgress.findIndex(e => e.from.id == state.id)
                 //console.log('idx',idx)
                 if(idx > -1)
@@ -346,7 +390,7 @@
                 //Input: to_element: an element that has to change the completion status based on the input state
                 //Output: returns true if all incoming connections are also complete
 
-                progress = this.eventbased_ProgressOfNetwork[this.iteration].progress
+                progress = this.progressOfNetwork[this.iteration].progress
                 status = true
                 index = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == to_element.id)
                 //console.log('checkCausalImpact:index', index)
@@ -451,7 +495,7 @@
                                 to_elems[i].complete = true
 
                         }
-                        this.eventbased_ProgressOfNetwork[this.iteration].progress.push(entry)
+                        this.progressOfNetwork[this.iteration].progress.push(entry)
                     }
                     else
                     {
@@ -471,7 +515,7 @@
                                 showNextEntry: false
                             }
 
-                            this.eventbased_ProgressOfNetwork[this.iteration].progress.push(entry)
+                            this.progressOfNetwork[this.iteration].progress.push(entry)
 
 
 
@@ -514,7 +558,7 @@
                  this.generateOutgoingBaseLevelNetwork(baseModel)
 
 
-                 //initialization of eventbased_ProgressOfNetwork
+                 //initialization of progressOfNetwork
                  this.initialize_eventBasedProgress()
 
 
@@ -538,7 +582,7 @@
                         progress.push(entry)
                    }
                 }
-                this.eventbased_ProgressOfNetwork[this.iteration] = {progress: progress}
+                this.progressOfNetwork[this.iteration] = {progress: progress}
 
             },
 
@@ -782,7 +826,8 @@
                 successmsg: [],
                 warningmsg: [],
                 initial_state:false,
-                fout: false
+                fout: false,
+                sentimentlbl: 'Positive'
 
             }
             if(element)
@@ -804,7 +849,8 @@
                 successmsg: element.successmsg,
                 warningmsg: element.warningmsg,
                 initial_state: false,
-                fout: false
+                fout: false,
+                sentimentlbl: element.sentimentlbl
                 }
 
             }

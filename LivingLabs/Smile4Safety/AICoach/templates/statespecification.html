@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+
+{% csrf_token %}
+<script>
+const csrftoken = document.querySelector('[name=X-CSRFToken]').value;
+</script>
+
+{% endblock %}

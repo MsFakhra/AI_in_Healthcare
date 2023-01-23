@@ -1,0 +1,1335 @@
+<!-- version containing the type of a state-->
+{% extends "base.html" %}
+
+{% block page_content %}
+<h1 xmlns:x-on="http://www.w3.org/1999/xhtml">Create Model</h1>
+ <p>Welcome to the page to design your shared mental model</p>
+<!--Code added to handle 403 - forbidden and CSRF undefined issue-->
+{% csrf_token %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+
+<form id="createMModel" method="post" action="{% url 'messagespecification' %}" onsubmit="return false"> {% csrf_token %}
+<div x-data="modelSpecification()" class="container py-5">
+    <table>
+        <tr>
+            <td>
+                <span class="input-group-text" id="basic-addon3">Name of the Model </span>
+            </td>
+            <td>
+                <input x-model="name" type="text" class="form-control" id="name" required>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>
+                <button x-on:click="checkandgenerateModel()" class="form-control btn btn-primary">Generate Model</button>
+            </td>
+        </tr>
+    </table>
+
+    <br>
+<hr>
+    <!-- State matrix The body of the model design-->
+      <div class="row" x-show="(showBaseModel)">
+         <div class="col">
+             <h2>Incoming Connections</h2>
+         </div>
+      </div>
+    <br>
+    <!--state matrix - displaying layered architecture-->
+    <div class="row justify-content-start state" x-show="(showBaseModel)">
+                <div class="col">
+                    <table>
+
+                        <tr class="baselevel">
+                            <table>
+                                <tr>
+                                    <td>id</td>
+                                    <td>State Name</td>
+                                    <td>&nbsp;User Name</td>
+                                    <td>&nbsp; Type Of State</td>
+                                    <td>&nbsp; Incoming State(s)</td>
+                                </tr>
+
+                                <template x-for="(bstate,bindex) in baseLevel" :key="bindex">
+                                <tr class="baselevel">
+                                    <!-- setting X1,X2 and so on-->
+                                    <td>
+                                            <span id="bstate.id" x-bind:placeholder="bstate.id" x-text="bstate.id"></span>
+                                    </td>
+                                    <!-- State name-->
+                                    <td>
+                                        <input type="text" x-model="bstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" ></input>
+                                    </td>
+                                    <td>
+                                        <input type="text" x-model="bstate.username" placeholder="User Prompt/User Name" class="form-control mr-3" size="10"></input>
+                                    </td>
+
+                                    <!-- type of state-->
+                                    <td>
+                                        <select class="form-select" x-model="bstate.monitoringstate">
+                                            <option :value="true" selected> Interaction / Monitoring State </option>
+                                            <option :value="false" >  Behavioral /  Psychological State </option>
+                                        </select>
+                                    </td>
+
+
+
+                                    <!-- incoming connections-->
+                                    <template x-for="col in bstate.inconnection">
+                                        <td>
+                                            <input type="text" x-model="col.value" placeholder="Xi" class="form-control mr-3" size="3">
+                                        </td>
+                                    </template>
+                                    <!-- adding more incoming connections-->
+                                    <td>
+                                        <button x-on:click="addBaseCol(bindex)" class="btn btn-success"> + </button>
+                                        <button x-on:click="removeBaseCol(bindex)" class="btn btn-danger"> - </button>
+                                    </td>
+                                </tr>
+                            </template>
+                                 <tr>
+                                <td colspan="2">
+                                <div>
+                                     <br>
+                                      <button x-show="showBaseModel" x-on:click="addBaseState()" class="btn btn-success"> Add a state here </button>
+                                     <button x-show="showBaseModel" x-on:click="removeBaseState()" class="btn btn-danger"> Remove last state </button>
+                                </div>
+                                </td>
+                            </tr>
+                            </table>
+                        </tr>
+                    <hr class="sectionhr" x-show="(showBaseModel)">
+                        <tr align="right">
+                            <div class="right">
+                            <button class="btn btn-primary" x-on:click="addFirstAdaptionLevel()" x-show="(showFirstAddButton && showBaseModel)"> Add First-Order Adaption Level </button>
+                            <button class="btn btn-warning" x-on:click="removeFirstAdaptionLevel()" x-show="!(showFirstAddButton)"> Remove First-Order Adaption Level </button>
+                            </div>
+                        </tr>
+                        <!--first level model-->
+                        <tr class="firstlevel">
+                            <div x-show="layer1">
+                                <table>
+                                    <template x-for="(fstate,findex) in firstOrderLevel" :key="findex">
+                                        <tr class="firstlevel">
+                                            <!-- setting X1,X2 and so on-->
+                                            <td>
+                                                <span id="fstate.id" x-text="fstate.id" x-bind:placeholder="fstate.id"></span>
+                                            </td>
+                                            <!-- State name-->
+                                            <td>
+                                                <input type="text" x-model="fstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" ></input>
+                                            </td>
+                                            <td>
+                                                <input type="text" x-model="fstate.username" placeholder="User Prompt/User Name" class="form-control mr-3" size="10" ></input>
+                                            </td>
+
+                                            <!-- type of state-->
+                                            <td>
+                                                <select class="form-select" x-model="fstate.monitoringstate">
+                                                    <option :value="true" disabled="disabled"> Interaction / Monitoring State </option>
+                                                    <option :value="false" selected>  Behavioral /  Psychological State </option>
+                                                </select>
+                                            </td>
+                                            <!-- incoming connections-->
+                                            <template x-for="col in fstate.inconnection">
+                                                <td>
+                                                    <input type="text" x-model="col.value" class="form-control mr-3" size="3">
+                                                </td>
+                                            </template>
+                                            <!-- adding more incoming connections-->
+                                            <td>
+                                                <button x-on:click="addFirstLevelCol(findex)" class="btn btn-success"> + </button>
+                                                <button x-on:click="removeFirstLevelCol(findex)" class="btn btn-danger"> - </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                        <tr>
+                                            <td colspan="2">
+                                                <div>
+                                                    <br>
+                                                    <button x-on:click="addFirstLevelState()" class="btn btn-success" x-show="showAddStateatFL"> Add a state here </button>
+                                                    <button x-on:click="removeFirstLevelState()" class="btn btn-danger" x-show="showAddStateatFL"> Remove last state </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                </table>
+                            </div>
+                        </tr>
+
+                        <hr class="sectionhr" x-show="layer1">
+                        <tr align="right">
+                            <div class="right">
+                            <button class="btn btn-primary" x-on:click="addSecondAdaptionLevel()" x-show="(showSecondAddButton)"> Add Second-Order Adaption Level </button>
+                            <button class="btn btn-warning" x-on:click="removeSecondAdaptionLevel()" x-show="(showSecondRemoveButton)"> Remove Second-Order Adaption Level </button>
+                            </div>
+                        </tr>
+
+                        <tr><!--second level model-->
+                            <div x-show="layer2">
+                            <table>
+                                <template x-for="(sstate,sindex) in secondOrderLevel" :key="sindex">
+                                    <tr class="secondlevel">
+                                        <!-- setting X1,X2 and so on-->
+                                        <td>
+                                            <span id="sstate.id" x-text="sstate.id" x-bind:placeholder="sstate.id"></span>
+                                        </td>
+                                        <!-- State name-->
+                                        <td>
+                                            <input type="text" x-model="sstate.name" placeholder="Enter State Name" class="form-control mr-3" size="10" ></input>
+                                        </td>
+                                        <td>
+                                            <input type="text" x-model="sstate.username" placeholder="User Prompt" class="form-control mr-3" size="10" ></input>
+                                        </td>
+
+                                        <!-- type of state-->
+                                        <td>
+                                            <select class="form-select" x-model="sstate.monitoringstate">
+                                                    <option :value="true" disabled="disabled"> Interaction / Monitoring State </option>
+                                                    <option :value="false" selected>  Behavioral /  Psychological State </option>
+                                            </select>
+                                        </td>
+                                        <!-- incoming connections-->
+                                        <template x-for="col in sstate.inconnection">
+                                            <td>
+                                                <input type="text" x-model="col.value" class="form-control mr-3" size="3">
+                                            </td>
+                                        </template>
+                                        <!-- adding more incoming connections-->
+                                        <td>
+                                            <button x-on:click="addSecondLevelCol(sindex)" class="btn btn-success"> + </button>
+                                            <button x-on:click="removeSecondLevelCol(sindex)" class="btn btn-danger"> - </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                    <tr>
+                                        <td colspan="2">
+                                            <div>
+                                                <br>
+                                                <button x-on:click="addSecondLevelState()" class="btn btn-success"> Add a state here </button>
+                                                <button x-on:click="removeSecondLevelState()" class="btn btn-danger"> Remove last state </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                            </table>
+
+                            </div>
+                        </tr>
+                </table>
+                </div>
+    </div>
+
+    <!--Connection weights cw-->
+    <div class="row" x-show="(showBaseModel)">
+         <div class="col">
+             <h2>Connection Weights</h2>
+         </div>
+      </div>
+    <br>
+    <!--Connection weights cw - displaying layered architecture-->
+    <div class="row justify-content-start state">
+        <div class="col">
+            <table class="nospacing">
+                <tr><!--base level model-->
+                    <table>
+                        <template x-for="(bstate,bindex) in baseLevel" :key="bindex">
+                            <tr class="baselevel">
+                                <!-- setting X1,X2 and so on-->
+                                <td>
+                                    <span x-bind:placeholder="bstate.id" x-text="bstate.id"></span>
+                                </td>
+                                <!-- State name-->
+                                <td>
+                                    <input type="text" x-model="bstate.name" class="form-control mr-3" size="10" disabled></input>
+                                </td>
+                                <!-- incoming connections-->
+                                <template x-for="col in bstate.connectionweights">
+                                    <td>
+                                        <input type="text" x-model="col.value" class="form-control mr-3" size="3">
+                                    </td>
+                                </template>
+
+                            </tr>
+                        </template>
+                        <!--first level model-->
+                        <template x-for="(fstate,findex) in firstOrderLevel" :key="findex">
+                            <tr class="firstlevel">
+                                <!-- setting X1,X2 and so on-->
+                                <td>
+                                    <span x-bind:placeholder="fstate.id" x-text="fstate.id"></span>
+                                </td>
+                                <!-- State name-->
+                                <td>
+                                    <input type="text" x-model="fstate.name" class="form-control mr-3" size="10" disabled></input>
+                                </td>
+                                <!-- incoming connections-->
+                                <template x-for="col in fstate.connectionweights">
+                                    <td>
+                                        <input type="text" x-model="col.value" class="form-control mr-3" size="3">
+                                    </td>
+                                </template>
+
+                            </tr>
+                        </template>
+                        <!--second level model-->
+                        <template x-for="(sstate,sindex) in secondOrderLevel" :key="sindex">
+                            <tr class="secondlevel">
+                                <!-- setting X1,X2 and so on-->
+                                <td>
+                                    <span x-bind:placeholder="sstate.id" x-text="sstate.id"></span>
+                                </td>
+                                <!-- State name-->
+                                <td>
+                                    <input type="text" x-model="sstate.name" class="form-control mr-3" size="10" disabled></input>
+                                </td>
+                                <!-- incoming connections-->
+                                <template x-for="col in sstate.connectionweights">
+                                    <td>
+                                        <input type="text" x-model="col.value" class="form-control mr-3" size="3">
+                                    </td>
+                                </template>
+                            </tr>
+                        </template>
+
+                    </table>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <!--cw-->
+
+    <!-- Speed and Initial Values-->
+  <div class="row" x-show="(showBaseModel)">
+         <div class="col">
+             <h2>Speed and Initial Value of the States</h2>
+         </div>
+      </div>
+    <br>
+    <!--state matrix - displaying layered architecture-->
+    <div class="row justify-content-start state" x-show="(showBaseModel)">
+                <div class="col">
+                    <table>
+                        <tr class="baselevel">
+                            <table>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>&nbsp; Initial Value</td>
+                                    <td>&nbsp; Speed Factor</td>
+                                </tr>
+                                <template x-for="(bstate,bindex) in baseLevel" :key="bindex">
+                                <tr class="baselevel">
+                                    <!-- setting X1,X2 and so on-->
+                                    <td>
+                                            <span id="bstate.id" x-bind:placeholder="bstate.id" x-text="bstate.id"></span>
+                                    </td>
+                                    <!-- State name-->
+                                    <td>
+                                        <input type="text" x-model="bstate.name" class="form-control mr-3" size="10" disabled></input>
+                                    </td>
+                                    <!-- Initial Value-->
+                                    <td>
+                                        <input type="text" x-model="bstate.initvalue" class="form-control mr-3" size="10" ></input>
+                                    </td>
+                                    <!-- Speed factor-->
+                                    <td>
+                                        <input type="text" x-model="bstate.speed"  class="form-control mr-3" size="10" ></input>
+                                    </td>
+
+                                </tr>
+                                </template>
+                            </table>
+                        </tr>
+                        <tr class="firstlevel"><!--first level model-->
+                            <div x-show="layer1">
+                                <table>
+                                    <template x-for="(fstate,findex) in firstOrderLevel" :key="findex">
+                                        <tr class="firstlevel">
+                                            <!-- setting X1,X2 and so on-->
+                                            <td>
+                                                <span id="fstate.id" x-text="fstate.id" x-bind:placeholder="fstate.id"></span>
+                                            </td>
+                                            <!-- State name-->
+                                            <td>
+                                                <input type="text" x-model="fstate.name" class="form-control mr-3" size="10" disabled></input>
+                                            </td>
+                                            <!-- Initial Value-->
+                                            <td>
+                                                <input type="text" x-model="fstate.initvalue"  class="form-control mr-3" size="10" ></input>
+                                            </td>
+                                            <!-- Speed factor-->
+                                            <td>
+                                                <input type="text" x-model="fstate.speed"  class="form-control mr-3" size="10" ></input>
+                                            </td>
+
+                                        </tr>
+                                    </template>
+                                </table>
+                            </div>
+                        </tr>
+                       <tr><!--second level model-->
+                            <div x-show="layer2">
+                            <table>
+                                <template x-for="(sstate,sindex) in secondOrderLevel" :key="sindex">
+                                    <tr class="secondlevel">
+                                        <!-- setting X1,X2 and so on-->
+                                        <td>
+                                            <span id="sstate.id" x-text="sstate.id" x-bind:placeholder="sstate.id"></span>
+                                        </td>
+                                        <!-- State name-->
+                                        <td>
+                                            <input type="text" x-model="sstate.name" class="form-control mr-3" size="10" disabled></input>
+                                        </td>
+                                        <!-- Initial Value-->
+                                        <td>
+                                            <input type="text" x-model="sstate.initvalue"  class="form-control mr-3" size="10" ></input>
+                                        </td>
+                                        <!-- Speed factor-->
+                                        <td>
+                                            <input type="text" x-model="sstate.speed"  class="form-control mr-3" size="10" ></input>
+                                        </td>
+
+                                    </tr>
+                                </template>
+                              </table>
+
+                            </div>
+                        </tr>
+                </table>
+                </div>
+    </div>
+
+    <!-- Speed and Initial Values-->
+
+
+
+     <!--Combination Function specification - cf-->
+
+    <div class="row" x-show="(showBaseModel)">
+         <div class="col">
+             <h2>Combination Function Specification</h2>
+         </div>
+      </div>
+    <br>
+    <!--Combination Function specification cf - displaying layered architecture-->
+    <div class="row justify-content-start state" x-show="(showBaseModel)">
+        <div class="col">
+            <table class="nospacing">
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td>Choose Combination Function</td>
+                </tr>
+                <tr>
+                    <table>
+                        <!--base level model-->
+                        <template x-for="(bstate,bindex) in baseLevel" :key="bindex">
+                            <tr class="baselevel">
+                                    <td>
+                                        <span x-bind:placeholder="bstate.id" x-text="bstate.id"></span>
+                                    </td>
+                                    <!-- State name-->
+                                    <td>
+                                        <input type="text" x-model="bstate.name" class="form-control mr-3" size="10" disabled></input>
+                                    </td>
+                                    <td>
+                                        <template x-for="(func,findex) in bstate.combinationfunctions" :key="findex">
+                                            <table>
+                                               <tr>
+                                                <td>
+                                                    <select class="form-select" x-model="func.id" x-on:change="showandSetBParameter(bindex,findex)">
+                                                        <option :value="0" hidden selected> -- select an option -- </option>
+                                                        <template x-for = "cof in combinationfuncs">
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
+                                                        </template>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div x-show="func.showParams">
+                                                        <input type="text" x-model="func.functionWeight" class="form-control mr-3">
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div x-show="func.showParams">
+                                                        <table>
+                                                            <tr>
+                                                            <template x-for = "(param,pindex) in func.parameters" :key="pindex">
+                                                                <td>
+                                                                        <input type="text" x-model="param.value" x-bind:placeholder="param.name" class="form-control mr-3" size="10"></input>
+                                                                </td>
+                                                            </template>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            </table>
+                                        </template>
+                                    </td>
+
+                                    <td>&emsp;</td>
+                                    <td valign="bottom">
+                                        <div x-show="bstate.showParamBtn">
+                                            <span x-text="'Add another function to state ' +  bstate.id"></span>
+                                            <br>
+                                            <button x-on:click="addBaseCombinationFunction(bindex)" class="btn btn-success"> + </button>
+                                            <button x-on:click="removeBaseCombinationFunction(bindex)" class="btn btn-danger"> - </button>
+                                        </div>
+                                    </td>
+                            </tr>
+                        </template>
+
+
+                        <!--first level model-->
+                        <template x-for="(fstate,findex) in firstOrderLevel" :key="findex">
+                            <tr class="firstlevel">
+                                <td>
+                                    <span x-bind:placeholder="fstate.id" x-text="fstate.id"></span>
+                                </td>
+                                <!-- State name-->
+                                <td>
+                                    <input type="text" x-model="fstate.name" class="form-control mr-3" size="10" disabled></input>
+                                </td>
+
+                                <td>
+                                    <template x-for="(ffunc,ffindex) in fstate.combinationfunctions" :key="ffindex">
+                                        <table>
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select" x-model="ffunc.id" x-on:change="showandSetFLParameter(findex,ffindex)">
+                                                        <option :value="0" hidden selected> -- select an option -- </option>
+                                                        <template x-for = "cof in combinationfuncs">
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
+                                                        </template>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div x-show="ffunc.showParams">
+                                                        &nbsp; <!--%age Usage <br>-->
+                                                        <input type="text" x-model="ffunc.functionWeight" placeholder="Function Weight" class="form-control mr-3">
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div x-show="ffunc.showParams">
+                                                        <!--<span> Enter Parameter Values</span>-->
+                                                        <table>
+                                                            <tr>
+                                                            <template x-for = "(fparam,fpindex) in ffunc.parameters" :key="fpindex">
+                                                                <td>
+                                                                        <input type="text" x-model="fparam.value" x-bind:placeholder="fparam.name" class="form-control mr-3" size="10" ></input>
+                                                                </td>
+                                                            </template>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </template>
+                                    </td>
+                                <td>&emsp;</td>
+                                <td valign="bottom">
+                                        <div x-show="fstate.showParamBtn">
+                                            <span x-text="'Add another function to state ' +  fstate.id"></span>
+                                            <br>
+                                            <button x-on:click="addFLevelCombinationFunction(findex)" class="btn btn-success"> + </button>
+                                            <button x-on:click="removeFLevelCombinationFunction(findex)" class="btn btn-danger"> - </button>
+                                        </div>
+                                    </td>
+
+
+                            </tr>
+                        </template>
+
+
+                        <!--second level model-->
+                        <template x-for="(sstate,sindex) in secondOrderLevel" :key="sindex">
+                            <tr class="secondlevel">
+                                <td>
+                                    <span x-bind:placeholder="sstate.id" x-text="sstate.id"></span>
+                                </td>
+                                <!-- State name-->
+                                <td>
+                                    <input type="text" x-model="sstate.name" class="form-control mr-3" size="10" disabled></input>
+                                </td>
+
+                                <td>
+                                    <template x-for="(sfunc,sfindex) in sstate.combinationfunctions" :key="sfindex">
+                                        <table>
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select" x-model="sfunc.id" x-on:change="showandSetSLParameter(sindex,sfindex)">
+                                                        <option :value="0" hidden selected> -- select an option -- </option>
+                                                        <template x-for = "cof in combinationfuncs">
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
+                                                        </template>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div x-show="sfunc.showParams">
+                                                        &nbsp; <!--%age Usage <br>-->
+                                                        <input type="text" x-model="sfunc.functionWeight" placeholder="Function Weight" class="form-control mr-3">
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div x-show="sfunc.showParams">
+                                                        <!--<span> Enter Parameter Values</span>-->
+                                                        <table>
+                                                            <tr>
+                                                            <template x-for = "(sparam,spindex) in sfunc.parameters" :key="spindex">
+                                                                <td>
+                                                                        <input type="text" x-model="sparam.value" x-bind:placeholder="sparam.name" class="form-control mr-3" size="15" ></input>
+                                                                </td>
+                                                            </template>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </template>
+                                    </td>
+                                <td>&emsp;</td>
+                                <td valign="bottom">
+                                        <div x-show="sstate.showParamBtn">
+                                            <span x-text="'Add another function to state ' +  sstate.id"></span>
+                                            <br>
+                                            <button x-on:click="addSLevelCombinationFunction(sindex)" class="btn btn-success"> + </button>
+                                            <button x-on:click="removeSLevelCombinationFunction(sindex)" class="btn btn-danger"> - </button>
+                                        </div>
+                                    </td>
+
+
+
+                            </tr>
+                        </template>
+
+                    </table>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <!--cf-->
+
+     <br>
+          <br>
+            <hr>
+            <div x-show="showBaseModel"><button x-on:click="save()" id="saveModel" class="btn btn-success">Save</button>
+            </div>
+
+
+</div> <!--model specification-->
+</form>
+<script>
+ function modelSpecification(){
+ return {
+
+ /* structure used for each layer
+A. states NxM matrix
+    mb
+B. Connection weights NxM matrix
+    non-adaptive: given by numbers and adaptive: state names
+D: Speed N x 1
+    non-adaptive: given by numbers and adaptive: state names
+E: Initial values N x 1
+  iv
+F: combination function structure:
+    this is a matrix which contains the 3D data, i.e.,
+    1. the weight or percentage usage of combination functions for a state mcsfw
+    2. the combination function (mcf)
+        2a. the combination function parameters (mcfpv)
+        */
+
+ name:'',
+ numberOfStates: 2,
+ showBaseModel:false,
+ showFirstAddButton: true,
+ showAddStateatFL:false,
+ showSecondAddButton:false,
+ showSecondRemoveButton:false,
+ //combination function library
+ combinationfuncs:[],
+
+
+ layer1:false,
+ layer2:false,
+
+
+
+ //reified architecture
+ baseLevel:[],
+ firstOrderLevel:[],
+ secondOrderLevel:[],
+ stateMatrix:[],
+
+
+
+checkandgenerateModel(){
+    this.showBaseModel = true
+
+    //combination functions initialization
+    json_data = JSON.parse("{{data|escapejs}}")
+    this.combinationfuncs = []
+
+    for(var i in json_data){
+        this.combinationfuncs.push(json_data[i])
+    }
+
+    console.log('check if already there is a model')
+    // check if already there is a model with the same name
+    model = 'false'
+     if (model == 'false')
+     {
+            //matrices
+            let existingStates = this.baseLevel.length
+            let diff = existingStates - this.numberOfStates
+
+
+            if (this.numberOfStates <= existingStates) {
+               this.baseLevel.splice(existingStates - diff, diff)
+            }
+            else
+            {
+
+               for (let loopindex = 0; loopindex < this.numberOfStates - existingStates; loopindex++)
+               {
+                   index = existingStates + loopindex + 1
+                   cfuncobjarray = {
+                       id:'1',
+                      name:'eucl',
+                      fullname:'eucledian',
+                      functionWeight:'1.0',
+                      numberOfPossibleParams:'2',
+                      parameters:[{name:'order', value:''},{name:'scaling factor', value:''}],
+                      showParams:false
+                      }
+
+                      this.baseLevel.push({showParamBtn:false, id: 'X'+index, name: '',username: '', inconnection: [{value: ''}], connectionweights:[{value: ''}], speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
+                      , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:true, values:[{curvalue:0.0, timestamp:0}]
+                        })
+
+               }
+
+            } //else
+
+            layerObject = { layer: 'Base Model',
+                            states:this.baseLevel,
+            }
+            this.stateMatrix.push(layerObject)
+
+            //reset other layers
+            len = this.firstOrderLevel.length
+            while(len > 0){
+                this.firstOrderLevel.splice(-1,1)
+                len--
+            }
+
+            len = this.secondOrderLevel.length
+            while(len > 0){
+                this.secondOrderLevel.splice(-1,1)
+                len--
+            }
+            this.layer1 = false
+            this.showFirstButton = true
+            this.layer2 = false
+            this.showSecondButton = false
+
+            //update stateMatrix
+            layerObject = { layer: 'First-Order Adaptation',
+                            states:this.firstOrderLevel,
+            }
+            this.stateMatrix.push(layerObject)
+
+            layerObject = { layer: 'Second-Order Adaptation',
+                            states:this.secondOrderLevel,
+            }
+            this.stateMatrix.push(layerObject)
+
+    } //if (model == 'false')
+
+
+
+ }, //checkandgeneratemodel()
+
+searchFunction(){
+console.log('hello')
+},
+showandSetBParameter(bindex,findex)
+{
+    //show and set the parameters of the base level
+    this.baseLevel[bindex].showParamBtn = true
+    this.showParams=true
+    id = this.baseLevel[bindex].combinationfunctions[findex].id
+    console.log(id)
+
+    //searching function from json file
+    for(let i = 0; i < this.combinationfuncs.length; i++){
+        if (id == this.combinationfuncs[i].id){
+            this.baseLevel[bindex].combinationfunctions[findex].name = this.combinationfuncs[i].name
+            this.baseLevel[bindex].combinationfunctions[findex].fullname= this.combinationfuncs[i].fullname
+            this.baseLevel[bindex].combinationfunctions[findex].numberOfPossibleParams= this.combinationfuncs[i].numberOfPossibleParams
+            parameters = this.combinationfuncs[i].paramNames.split("&")
+
+            adjustedparams = []
+            for(let pi= 0; pi< parameters.length;pi++)
+            {
+                paramname = parameters[pi]
+                paramval = ''
+                adjustedparams.push({name:paramname, value:paramval})
+
+            }
+            this.baseLevel[bindex].combinationfunctions[findex].parameters = adjustedparams
+
+        }
+    }
+    //searching function
+
+
+
+    this.baseLevel[bindex].combinationfunctions[findex].showParams=true
+},
+
+addBaseCombinationFunction(bindex){
+    console.log(Number(bindex))
+    //by default adding eucledian - ask Jan Q. I have added by default one function that is eucl however, if user wants to add another he must choose, otherwise, no function will be executed
+
+    cfuncobjarray = {
+        id:'0',
+        name:'',
+        fullname:'',
+        functionWeight:'0.0',
+        numberOfPossibleParams:'',
+        parameters:[{name:'', value:''},{name:'', value:''}],
+        showParams:false
+    }
+    this.baseLevel[bindex].combinationfunctions.push(cfuncobjarray)
+    this.baseLevel[bindex].showParamBtn = false
+},
+
+removeBaseCombinationFunction(bindex){
+console.log('remove bcf')
+len = this.baseLevel[bindex].combinationfunctions.length
+console.log(len)
+  if (len > 1)
+   {
+        this.baseLevel[bindex].combinationfunctions.splice(-1,1)
+
+   }
+   else
+   {
+     alert('Cannot delete any combination function further.')
+     return 'Cannot delete any combination function further.'
+   }
+},
+
+
+
+ addBaseCol(index) {
+ //adds another incoming connection
+
+  this.baseLevel[index].inconnection.push({value:''})
+  this.baseLevel[index].connectionweights.push({value: ''})
+ },
+
+ removeBaseCol(index) {
+ //remove incoming connection
+  len = this.baseLevel[index].inconnection.length
+   if (len >= 2)
+   {
+     this.baseLevel[index].inconnection.splice(this.baseLevel[index].inconnection.length -1 ,1)
+     this.baseLevel[index].connectionweights.splice(this.baseLevel[index].connectionweights.length -1 ,1)
+   }
+   else
+   {
+     return 'Cannot delete further.'
+   }
+ },
+
+ addBaseState(){
+    /*This function adds a state at the base level*/
+
+    cfuncobjarray = {
+        id:'1',
+        name:'eucl',
+        fullname:'eucledian',
+        functionWeight:'1.0',
+        numberOfPossibleParams:'2',
+        parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
+        showParams:false
+        }
+
+    lastindex = this.baseLevel.length
+    index = lastindex + 1
+
+    this.baseLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''}], connectionweights:[{value: ''}],speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
+                        , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:true, values:[{curvalue:0.0, timestamp:0}]
+                        })
+
+    this.numberOfStates = index
+
+
+    //reset other layers
+    len = this.firstOrderLevel.length
+    while(len > 0){
+        this.firstOrderLevel.splice(-1,1)
+        len--
+    }
+
+    len = this.secondOrderLevel.length
+    while(len > 0){
+        this.secondOrderLevel.splice(-1,1)
+        len--
+    }
+
+    this.layer1 = false
+    this.layer2 = false
+    this.showFirstAddButton = true
+    this.showSecondAddButton=false
+    this.showSecondRemoveButton=false
+},
+
+removeBaseState()
+{
+    len = this.baseLevel.length
+
+    if(len > 2)
+    {
+        this.baseLevel.splice(-1,1)
+        //reset other layers
+        len = this.firstOrderLevel.length
+        while(len > 0){
+            this.firstOrderLevel.splice(-1,1)
+            len--
+        }
+
+        len = this.secondOrderLevel.length
+        while(len > 0){
+            this.secondOrderLevel.splice(-1,1)
+            len--
+        }
+
+        this.layer1 = false
+        this.layer2 = false
+        this.showFirstAddButton = true
+        this.showSecondAddButton=false
+        this.showSecondRemoveButton=false
+    }
+    else
+        alert('Cannot delete any state. <br> If you want to remove a level Choose the Adaption Level Buttons')
+
+},
+///////////////////////First Level
+
+
+addFLevelCombinationFunction(sindex){
+//add combination function at first level
+    cfuncobjarray = {
+        id:'0',
+        name:'',
+        fullname:'',
+        functionWeight:'0.0',
+        numberOfPossibleParams:'',
+        parameters:[{name:'', value:''},{name:'', value:''}],
+        showParams:false
+    }
+    this.firstOrderLevel[sindex].combinationfunctions.push(cfuncobjarray)
+    this.firstOrderLevel[sindex].showParamBtn = false
+
+},
+
+removeFLevelCombinationFunction(sindex){
+//remove combination function at first level
+len = this.firstOrderLevel[sindex].combinationfunctions.length
+if (len > 1)
+   {
+        this.firstOrderLevel[sindex].combinationfunctions.splice(-1,1)
+
+   }
+   else
+   {
+     alert('Cannot delete any combination function further.')
+     return 'Cannot delete any combination function further.'
+   }
+},
+
+
+showandSetFLParameter(sindex,findex)
+{
+    //show and set the parameters of the first level
+    this.firstOrderLevel[sindex].showParamBtn = true
+
+    id = this.firstOrderLevel[sindex].combinationfunctions[findex].id
+
+    //searching function from json file
+    for(let i = 0; i < this.combinationfuncs.length; i++){
+        if (id == this.combinationfuncs[i].id){
+            this.firstOrderLevel[sindex].combinationfunctions[findex].name = this.combinationfuncs[i].name
+            this.firstOrderLevel[sindex].combinationfunctions[findex].fullname= this.combinationfuncs[i].fullname
+            this.firstOrderLevel[sindex].combinationfunctions[findex].numberOfPossibleParams= this.combinationfuncs[i].numberOfPossibleParams
+            parameters = this.combinationfuncs[i].paramNames.split("&")
+
+            adjustedparams = []
+            for(let pi= 0; pi< parameters.length;pi++)
+            {
+                paramname = parameters[pi]
+                paramval = ''
+                adjustedparams.push({name:paramname, value:paramval})
+
+            }
+            this.firstOrderLevel[sindex].combinationfunctions[findex].parameters = adjustedparams
+
+        }
+    }
+    //searching function
+
+
+
+    this.firstOrderLevel[sindex].combinationfunctions[findex].showParams=true
+},
+
+addFirstAdaptionLevel(){
+    /*This function adds first order adaption level*/
+    this.layer1 = true
+    this.showAddStateatFL = true
+    this.showFirstAddButton = false
+    this.showSecondAddButton = true
+    this.showSecondRemoveButton = false
+
+    lastindex = this.baseLevel.length
+    index = lastindex + 1
+    length_firstlevel = this.firstOrderLevel.length
+
+    if(length_firstlevel == 0){
+
+
+        cfuncobjarray = {
+            id:'1',
+            name:'eucl',
+            fullname:'eucledian',
+            functionWeight:'1.0',
+            numberOfPossibleParams:'2',
+            parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
+            showParams:false
+            }
+
+        this.firstOrderLevel.push({id: 'X' + index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}],connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                    , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                        })
+    }
+
+},
+
+addFirstLevelState(){
+    /*This function adds a state on the first order adaption level*/
+
+    lastid = this.firstOrderLevel[this.firstOrderLevel.length-1]['id']
+    thenum =  lastid.match(/\d+/)[0]
+    idvalue = parseInt(thenum) + 1
+
+
+    cfuncobjarray = {
+            id:'1',
+            name:'eucl',
+            fullname:'eucledian',
+            functionWeight:'1.0',
+            numberOfPossibleParams:'2',
+            parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
+            showParams:false
+            }
+
+    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                        })
+
+    //reset second layer
+    len = this.firstOrderLevel.length
+    while(len > 0){
+        this.secondOrderLevel.splice(-1,1)
+        len--
+    }
+    this.layer2 = false
+    this.showSecondAddButton = true
+    this.showSecondRemoveButton = false
+},
+
+removeFirstLevelState()
+{
+    len = this.firstOrderLevel.length
+    if(len > 1)
+    {
+        this.firstOrderLevel.splice(-1,1)
+        //reset second layer
+        len = this.firstOrderLevel.length
+        while(len > 0){
+            this.secondOrderLevel.splice(-1,1)
+            len--
+        }
+        this.layer2 = false
+        this.showSecondAddButton = true
+        this.showSecondRemoveButton = false
+    }
+    else
+        alert('Cannot delete any state here. <br> If you want to remove a level Choose the Adaption Level Buttons')
+    //if there is no state at second level then show add button
+    this.showSecondAddButton = true
+    this.showSecondRemoveButton = false
+},
+
+
+removeFirstAdaptionLevel(){
+    /*This function removes first order adaption level*/
+    len = this.firstOrderLevel.length
+    while(len > 0){
+        this.firstOrderLevel.splice(-1,1)
+        len--
+    }
+
+    len = this.secondOrderLevel.length
+    while(len > 0){
+        this.secondOrderLevel.splice(-1,1)
+        len--
+    }
+
+    this.layer1 = false
+    this.layer2 = false
+    this.showFirstAddButton = true
+    this.showSecondAddButton = false
+    this.showAddStateatFL = false
+    this.showSecondRemoveButton = false
+},
+
+addFirstLevelCol(findex){
+    this.firstOrderLevel[findex].inconnection.push({value:''})
+    this.firstOrderLevel[findex].connectionweights.push({value: ''})
+},
+
+removeFirstLevelCol(index){
+    len = this.firstOrderLevel[index].inconnection.length
+    if (len >= 4)
+    {
+        this.firstOrderLevel[index].inconnection.splice(this.firstOrderLevel[index].inconnection.length -1 ,1)
+        this.firstOrderLevel[index].connectionweights.splice(this.firstOrderLevel[index].connectionweights.length -1 ,1)
+    }
+    else
+    {
+        return 'Cannot delete further.'
+    }
+},
+
+//////////////////////////////Second Level
+
+addSLevelCombinationFunction(sindex){
+//add combination function at second level
+    cfuncobjarray = {
+        id:'0',
+        name:'',
+        fullname:'',
+        functionWeight:'0.0',
+        numberOfPossibleParams:'',
+        parameters:[{name:'', value:''},{name:'', value:''}],
+        showParams:false
+    }
+    this.secondOrderLevel[sindex].combinationfunctions.push(cfuncobjarray)
+    this.secondOrderLevel[sindex].showParamBtn = false
+
+},
+removeSLevelCombinationFunction(sindex){
+//remove combination function at second level
+len = this.secondOrderLevel[sindex].combinationfunctions.length
+if (len > 1)
+   {
+        this.secondOrderLevel[sindex].combinationfunctions.splice(-1,1)
+
+   }
+   else
+   {
+     alert('Cannot delete any combination function further.')
+     return 'Cannot delete any combination function further.'
+   }
+
+},
+showandSetSLParameter(sindex,findex){
+    //show and set the parameters of the second level
+    this.secondOrderLevel[sindex].showParamBtn = true
+
+    id = this.secondOrderLevel[sindex].combinationfunctions[findex].id
+
+    //searching function from json file
+    for(let i = 0; i < this.combinationfuncs.length; i++){
+        if (id == this.combinationfuncs[i].id){
+            this.secondOrderLevel[sindex].combinationfunctions[findex].name = this.combinationfuncs[i].name
+            this.secondOrderLevel[sindex].combinationfunctions[findex].fullname= this.combinationfuncs[i].fullname
+            this.secondOrderLevel[sindex].combinationfunctions[findex].numberOfPossibleParams= this.combinationfuncs[i].numberOfPossibleParams
+            parameters = this.combinationfuncs[i].paramNames.split("&")
+
+            adjustedparams = []
+            for(let pi= 0; pi< parameters.length;pi++)
+            {
+                paramname = parameters[pi]
+                paramval = ''
+                adjustedparams.push({name:paramname, value:paramval})
+
+            }
+            this.secondOrderLevel[sindex].combinationfunctions[findex].parameters = adjustedparams
+
+        }
+    }
+    //searching function
+
+
+
+    this.secondOrderLevel[sindex].combinationfunctions[findex].showParams=true
+},
+
+addSecondAdaptionLevel(){
+    /*This function adds first order adaption level*/
+    this.layer2 = !this.layer2
+    this.showFirstAddButton = false
+    this.showSecondAddButton = false
+    this.showSecondRemoveButton = true
+
+    lastindex = this.firstOrderLevel[this.firstOrderLevel.length-1]['id']
+    thenum =  lastindex.match(/\d+/)[0]
+    index = parseInt(thenum) + 1
+
+    length_secondlevel = this.secondOrderLevel.length
+    if(length_secondlevel == 0){
+          cfuncobjarray = {
+            id:'1',
+            name:'eucl',
+            fullname:'eucledian',
+            functionWeight:'1.0',
+            numberOfPossibleParams:'2',
+            parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
+            showParams:false
+            }
+
+        this.secondOrderLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                    , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                        })
+    }
+
+},
+
+addSecondLevelState(){
+    /*This function adds a state on the second order adaption level*/
+
+    lastid = this.secondOrderLevel[this.secondOrderLevel.length-1]['id']
+    thenum =  lastid.match(/\d+/)[0]
+    idvalue = parseInt(thenum) + 1
+
+    cfuncobjarray = {
+         id:'1',
+         name:'eucl',
+         fullname:'eucledian',
+         functionWeight:'1.0',
+         numberOfPossibleParams:'2',
+         parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
+         showParams:false
+    }
+
+    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
+                                , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                        })
+},
+
+removeSecondLevelState(){
+    len = this.secondOrderLevel.length
+    if(len > 1){
+        this.secondOrderLevel.splice(-1,1)
+    }
+    else
+        console.log('Please remove the whole layer')
+},
+
+removeSecondAdaptionLevel(){
+    /*This function removes first order adaption level*/
+    len = this.secondOrderLevel.length
+    while(len > 0){
+        this.secondOrderLevel.splice(-1,1)
+        len--
+    }
+
+    this.layer2 = false
+    this.showSecondAddButton = true
+    this.showSecondRemoveButton = false
+
+},
+addSecondLevelCol(index){
+    this.secondOrderLevel[index].inconnection.push({value:''})
+    this.secondOrderLevel[index].connectionweights.push({value:''})
+
+},
+
+removeSecondLevelCol(index){
+    len = this.secondOrderLevel[index].inconnection.length
+    if (len >= 4)
+    {
+        this.secondOrderLevel[index].inconnection.splice(this.secondOrderLevel[index].inconnection.length -1 ,1)
+        this.secondOrderLevel[index].connectionweights.splice(this.secondOrderLevel[index].connectionweights.length -1 ,1)
+    }
+    else
+    {
+        return 'Cannot delete further.'
+    }
+},
+
+
+save() {
+
+    //console.log(this.baseLevel)
+    /* TO-DO:
+    1. improve structure of code
+    2. validation checks
+    3. Setting the initial values for the states in the model (Optional)
+    */
+     //check for incoming connections
+     for (var i = 0; i < this.baseLevel.length; i++)
+     {
+        if(this.baseLevel[i].inconnection[0].value == "")
+            this.baseLevel[i].inconnection[0].value = this.baseLevel[i].id
+        else
+            console.log(this.baseLevel[i].inconnection[0].value)
+     }
+     console.log(this.baseLevel)
+
+     axios({
+        method: 'post',
+        url: '/modelspecification/',
+        data: {
+            name: this.name,
+            stateMatrix: this.stateMatrix//,
+            //baseLevel: this.baseLevel,
+            //firstOrderLevel: this.firstOrderLevel,
+            //secondOrderLevel: this.secondOrderLevel
+
+        },
+        headers: {//'Content-Type': 'application/json',
+                   'X-CSRFToken': csrftoken},
+                   validateStatus: (status) => {         //validateStatus
+                   return true;
+                  },
+        })
+        .then((response) => {
+            if (response.status == '200')
+            {
+                document.getElementById("createMModel").submit();
+            }
+
+        }, (error) => {
+            console.log(error.response.data);
+        });
+}  //save
+
+ } //return
+
+
+}//modelspecification
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% csrf_token %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+
+<form id="updateMModel" method="post" action="{% url 'supportspecificationupdated' %}"> {% csrf_token %}
+    <div x-data="coachSpecification()" x-init="loadModel()" class="container py-5">
+
+    <table class="tblstyle">
+            <tr>
+                <td>
+                    <span class="input-group-text" id="basic-addon3" x-text="'Name of the Model:' +'\xa0\xa0\xa0\xa0\xa0\xa0\xa0'+ name"> </span>
+                </td>
+
+            </tr>
+            <tr><td><br></td></tr>
+
+            <tr>
+                <!--base level -->
+                <template x-for="(bstate,bindex) in baseLevel.states" :key="bindex">
+                <table>
+                    <tr class="baselevel">
+
+                            <td>
+                                <span id="bstate.id" x-text="bstate.id"></span>
+                            </td>
+                            <!-- State name with tooltip-->
+                            <td>
+                                <div x-data="{ message: bstate.username }">
+                                    <template x-ref="template">
+                                        <p x-text="message"></p>
+                                    </template>
+                                    <input type="text" x-tooltip="{
+                                        content: () => $refs.template.innerHTML,
+                                        allowHTML: true,
+                                        appendTo: $root
+                                        }" class="form-control mr-3" size="10" x-model="bstate.name" readonly>
+                                    </input>
+                                </div>
+                            </td>
+                            <!-- data for the Coach -->
+                            <td>
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <select class="form-select" x-model="bstate.monitoringstate" x-on:change="showandSetParameters(bindex)">
+                                                    <option value="true"> Interaction / Monitoring State</option>
+                                                    <option value="false"> Behavioral /  Psychological State</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <td x-show="bstate.monitoringstate">
+                                                <textarea x-model="bstate.monitoringmsg" placeholder="Enter sample success messages one per line" class="form-control" rows="3" x-on:change="checkandUpdate(bstate)"></textarea>
+                                            </td>
+                                        </td>
+                                    </tr>
+                                    </table>
+                            </td>
+                    </tr>
+                </table>
+                </template>
+                <!--base level -->
+
+
+            </tr>
+        <tr>
+            <td>
+                <br>
+                <br>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button x-on:click="saveRole()" class="btn btn-success"> Save </button>
+                <button x-on:click="clearForm()" class="btn btn-danger"> Reset Form </button>
+            </td>
+        </tr>
+    </table>
+
+
+</div>
+</form>
+<!--{{ data}}-->
+<script>
+
+function coachSpecification(){
+ return {
+ id:'',
+ name:'',
+ stateMatrix:[],
+ baseLevel:[],
+ firstOrderLevel:[],
+ secondOrderLevel:[],
+
+
+
+ loadModel(){
+
+ //loading MM
+
+ json_data = JSON.parse("{{data|escapejs}}")
+ this.id = json_data.id
+ this.name = json_data.name
+ specification = json_data.specification
+ console.log(specification)
+
+ this.baseLevel = specification[0]
+ this.firstOrderLevel = specification[1]
+ this.secondOrderLevel = specification[2]
+
+ for (var i = 0; i < this.baseLevel.states.length; i++)
+ {
+    if (this.baseLevel.states[i].monitoringstate == "false")
+        this.baseLevel.states[i].monitoringstate = false
+    else
+        if(this.baseLevel.states[i].monitoringstate == "true")
+            this.baseLevel.states[i].monitoringstate = true
+ }
+
+ this.stateMatrix.push(this.baseLevel)
+ this.stateMatrix.push(this.firstOrderLevel)
+ this.stateMatrix.push(this.secondOrderLevel)
+
+},
+
+checkandUpdate(state){
+    console.log('state',state)
+    if(state.monitoringstate == false)
+    {
+        state.monitoringmsg=''
+        console.log('this state can not have the monitoring message')
+    }
+
+    return 'This state can not have the monitoring message.'
+},
+
+
+
+showandSetParameters(index){
+    //setting the parameters
+    if (this.baseLevel.states[index].monitoringstate == 'true')
+        this.baseLevel.states[index].monitoringstate = true
+    else
+        this.baseLevel.states[index].monitoringstate = false
+},
+
+saveRole(){
+//saving data to the database
+
+     axios({
+        method: 'post',
+        url: '/messagespecificationupdated/',
+        data: {
+            id: this.id,
+            name: this.name,
+            stateMatrix: this.stateMatrix
+        },
+        headers: {
+            //'Content-Type': 'application/json',
+                   'X-CSRFToken': csrftoken},
+                   validateStatus: (status) => {         //validateStatus
+                   return true;
+                  },
+        })
+        .then((response) => {
+            console.log(response.status)
+        }, (error) => {
+            console.log(error.response.data);
+        });
+
+}  //save
+,
+
+clearForm(){
+    loadModel()
+}
+
+
+}//return
+}//coachSpecification
+</script>
+{% endblock %}
