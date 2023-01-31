@@ -69,9 +69,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                                     <!-- type of state-->
                                     <td>
-                                        <select class="form-select" x-model="bstate.monitoringstate">
-                                            <option :value="true" selected> Interaction / Monitoring State </option>
-                                            <option :value="false" >  Behavioral /  Psychological State </option>
+                                        <select class="form-select" x-model="bstate.isinternal">
+                                            <option :value="true" selected> Internal State </option>
+                                            <option :value="false" > Actionable / Observation State </option>
                                         </select>
                                     </td>
 
@@ -128,7 +128,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                                             <!-- type of state-->
                                             <td>
-                                                <select class="form-select" x-model="fstate.monitoringstate">
+                                                <select class="form-select" x-model="fstate.isinternal">
                                                     <option :value="true" disabled="disabled"> Interaction / Monitoring State </option>
                                                     <option :value="false" selected>  Behavioral /  Psychological State </option>
                                                 </select>
@@ -187,7 +187,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                                         <!-- type of state-->
                                         <td>
-                                            <select class="form-select" x-model="sstate.monitoringstate">
+                                            <select class="form-select" x-model="sstate.isinternal">
                                                     <option :value="true" disabled="disabled"> Interaction / Monitoring State </option>
                                                     <option :value="false" selected>  Behavioral /  Psychological State </option>
                                             </select>
@@ -711,7 +711,7 @@ checkandgenerateModel(){
                       }
 
                       this.baseLevel.push({showParamBtn:false, id: 'X'+index, name: '',username: '', inconnection: [{value: ''}], connectionweights:[{value: ''}], speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
-                      , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:true, values:[{curvalue:0.0, timestamp:0}]
+                      , message:'',complete:false, sentimentlbl: 'Positive', isinternal:false,  values:[{curvalue:0.0, timestamp:0}]
                         })
 
                }
@@ -868,7 +868,7 @@ console.log(len)
     index = lastindex + 1
 
     this.baseLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''}], connectionweights:[{value: ''}],speed:0.0,initvalue:0.0, combinationfunctions:[cfuncobjarray]
-                        , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:true, values:[{curvalue:0.0, timestamp:0}]
+                        , message:'',complete:false, sentimentlbl: 'Positive', isinternal:false,  values:[{curvalue:0.0, timestamp:0}]
                         })
 
     this.numberOfStates = index
@@ -1019,7 +1019,7 @@ addFirstAdaptionLevel(){
             }
 
         this.firstOrderLevel.push({id: 'X' + index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}],connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                    , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                                    , message:'',complete:false, sentimentlbl: 'Positive', isinternal:true,  values:[{curvalue:0.0, timestamp:0}]
                         })
     }
 
@@ -1044,7 +1044,7 @@ addFirstLevelState(){
             }
 
     this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                                , message:'',complete:false, sentimentlbl: 'Positive', isinternal:true,  values:[{curvalue:0.0, timestamp:0}]
                         })
 
     //reset second layer
@@ -1211,7 +1211,7 @@ addSecondAdaptionLevel(){
             }
 
         this.secondOrderLevel.push({id: 'X'+ index, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                    , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                                    , message:'',complete:false, sentimentlbl: 'Positive', isinternal:true,  values:[{curvalue:0.0, timestamp:0}]
                         })
     }
 
@@ -1235,7 +1235,7 @@ addSecondLevelState(){
     }
 
     this.secondOrderLevel.push({id: 'X'+idvalue, name: '', username: '', inconnection: [{value:''},{value:''},{value:''}], connectionweights:[{value:''},{value:''},{value:''}],speed:0.0, initvalue:0.0,combinationfunctions:[cfuncobjarray]
-                                , monitoringmsg:'',complete:false, sentimentlbl: 'Positive', monitoringstate:false, values:[{curvalue:0.0, timestamp:0}]
+                                , message:'',complete:false, sentimentlbl: 'Positive', isinternal:true,  values:[{curvalue:0.0, timestamp:0}]
                         })
 },
 

@@ -22,7 +22,7 @@ and will be showing only the monitoring states
                             <tr>
                                 <td>
                                     <div x-show="bstate.monitoringstate"><!--"true">-->
-                                        <button id="bstate.id" x-text="bstate.name" type="button"
+                                        <button id="bstate.id" x-text="bstate.id + ':' + bstate.name" type="button"
                                             @click="recordFromAction(curprg,bstate)"
                                             class="button button4"
                                             :class="{ 'bg-yellow-300': (bstate.monitoringstate && !bstate.complete),
@@ -36,13 +36,12 @@ and will be showing only the monitoring states
                                 <td>
                                     <div>
                                         <table>
-                                            <tr>
+                                            <tr> <!-- + 'CMP:' + tostate.complete + ' FOUT:' + tostate.fout-->
                                                 <template x-for="(tostate,toindex) in prg.to" :key="toindex">
                                                     <td>
                                                         <div x-show="tostate.monitoringstate">
-                                                         <button id="tostate.id" x-text="tostate.name" type="button"
-                                                              @click="console.log('monitoring state', tostate.monitoringstate);
-                                                                      stateclicked = tostate;
+                                                         <button id="tostate.id" x-text=" tostate.id + ':' +tostate.name" type="button"
+                                                              @click="stateclicked = tostate;
                                                                       istostate = true;
                                                                       recordToAction(curprg,tostate)"
                                                               class="button button4"
@@ -153,22 +152,34 @@ and will be showing only the monitoring states
 
                 if(from_elem.complete)
                 {
-                    //if a state is clicked then propagate with respect to next 'to' elements
+                    //if a state is clicked, then propagate with respect to next 'to' elements
                     t_complete = true
                     idx = to_elems.findIndex(e => e.complete == false)
-                    //console.log('showNext - to_elem',to_elems)
+
+                    //console.log('showNext - length,idx',to_elems.length, idx,istostate)
                     if(idx > -1)
                     {
                         //there is an element which is not complete
                         t_complete = false
                     }
 
+                    if(istostate)
+                        t_complete = true
+
+
+                    //console.log('clicked state',state)
+
                     if(t_complete)
                     {
                         //console.log('showNext - flag,state',t_complete,state)
                         elem = this.getToElementsofaState(state)
 
-                        //console.log('showNext - elem', elem)
+
+                        if(elem[0].id == '')    //this implies it is at the end of the network
+                        {
+                            console.log('WORKING HERE SHOWNEXT - lastelem', elem)
+                            elem[0].complete = true
+                        }
 
                     }
 
@@ -195,9 +206,12 @@ and will be showing only the monitoring states
                 }
 
                 //if all from states are clicked then move on
+                //console.log('STATTETEE',state)
+                //completed = this.checkCausalImpact(progress_element)
+                completed = this.checkCausalImpact(state)
 
-                completed = this.checkCausalImpact(progress_element)
-                //console.log('completed',completed)
+                //WORKING HERE
+                console.log('WORKING HERE!! checkCausalImpact returned completed',completed)
                 if(!completed)
                 {
                    alert('Please complete the initial element first')
@@ -207,7 +221,7 @@ and will be showing only the monitoring states
 
                 //if another to element in the curprg is already clicked then return
                 to_elems = curprg.to
-                console.log('to_elems',to_elems)
+                //console.log('to_elems',to_elems)
                 idx = to_elems.findIndex(e => e.complete == true)
                 if(idx > -1)
                 {
@@ -222,22 +236,30 @@ and will be showing only the monitoring states
                     return
                 }
 
-                //alert('record To Action')
+                /*TO-DO:// if it is not initial state then check for the causal impact. if all elements are completed then proceed for it as completed
+                if (!state.initial_state)
+                {
+                    impact_complete = this.checkCausalImpact(state)
+                    console.log('causalimpact is',impact_complete)
+
+                    if(!impact_complete)
+                    {
+                        console.log('causal impact not complete yet')
+                        return
+                    }
+
+                }*/
 
                 state.complete = true
-                // select similar states in the current progress to mark them as completed
-                console.log('curprg',curprg)
+                //Update previous states status
+                //console.log('curprg',curprg)
                 //console.log('prg',this.progressOfNetwork[this.iteration].progress)
-                for(var i = 0; i < this.progressOfNetwork[this.iteration].progress.length;i++)
-                {
-                    to_elems = this.progressOfNetwork[this.iteration].progress[i].to
-                    tidx = to_elems.findIndex(e => e.id == state.id)
-                    if(tidx > -1 && to_elems[tidx].complete == false )
-                    {
-                        this.progressOfNetwork[this.iteration].progress[i].to[tidx].complete = true
-                    }
-                }
 
+                //update status
+
+                this.updateCurrentMonitoringState(state,curprg)
+
+                //playing the audio messages
                 success_msg = state.successmsg
                 pitch = 0.8
                 rate = 0.85
@@ -252,7 +274,7 @@ and will be showing only the monitoring states
                 //2. if the state has a non-monitoring to-state complete it too.
                 //get from outgoingBaseLevelNetwork then get the respective to elements
                 idx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id == state.id)
-                console.log('recordTo:idx',idx)
+                //console.log('recordTo:idx',idx)
                 //from_elem
                 if(idx > -1)
                 {
@@ -262,35 +284,63 @@ and will be showing only the monitoring states
                     from_elem = from_entry.from
                     //console.log('from_elems', from_elem)
 
-                    /*//if to element is a monitoring state then do not update the status of the coming states, otherwise update
+                    //if to element is a monitoring state then do not update the status of the following states, otherwise update
                     to_elems = from_entry.to
                     for(var i = 0; i < to_elems.length; i++)
                     {
-                        to_elem = this.getToElementsofaState(to_elems[i])
+                        to_elem = this.getToElementsofaState(to_elems[i]) //populates the to elements - decision
                         //console.log('recordToAction: to_elemENT', to_elem)
-                    }*/
+                    }
+                }
 
+                //Alternative Paths: if there are more monitoring elements in curprg make their fout as true=> i.e. the path is not followed
+                to_elems = curprg.to
+                //console.log('recordToAction: to_elemts', to_elems)
 
+                for(var i=0; i<to_elems.length;i++)
+                {
+                    to_elem = to_elems[i]
 
-
-                    //Alternative Paths: if there are more monitoring elements in curprg make their fout as true=> i.e. the path is not followed
-                    to_elems = curprg.to
-                    //console.log('recordToAction: to_elemts', to_elems)
-
-                    for(var i=0; i<to_elems.length;i++)
+                    if((to_elem.monitoringstate == true) && (to_elem.complete == false))
                     {
-                        to_elem = to_elems[i]
-                        //console.log('recordToAction: to_elemt', to_elem)
+                        to_elem.fout = true
+                        //TO-DO: complete the same for the fout states with the other states in the progress elements use the following function
+                        //updateCurrentMonitoringState(state,curprg)
+                    }
 
-                        if((to_elem.monitoringstate == true) && (to_elem.complete == false))
-                        {
-                            to_elem.fout = true
-                        }
 
+                }
+
+
+                this.showNextEventBasedProgressElement(curprg,state,true)
+            },
+
+            updateCurrentMonitoringState(state,curprg){
+            /*  TO-DO: This function updates the similar elements in the progressOfNetwork
+                This function takes the state and sets the status of the similar elements in the progress
+                */
+
+                for(var i = 0; i < this.progressOfNetwork[this.iteration].progress.length;i++)
+                {
+                    to_elems = this.progressOfNetwork[this.iteration].progress[i].to
+
+                    //1.  select similar states in the current progress to mark them as completed
+                    //1.a. update from states
+                    from_elem = this.progressOfNetwork[this.iteration].progress[i].from
+                    if(from_elem.id == state.id)
+                    {
+                        this.progressOfNetwork[this.iteration].progress[i].from.complete = state.complete //i.e., true
+                    }
+                    //1.b. update to states
+                    tidx = to_elems.findIndex(e => e.id == state.id)
+                    if(tidx > -1 && to_elems[tidx].complete == false )
+                    {
+                        //console.log('completed',to_elems[tidx] )
+                        this.progressOfNetwork[this.iteration].progress[i].to[tidx].complete = state.complete //i.e., true
                     }
 
                 }
-                this.showNextEventBasedProgressElement(curprg,state,true)
+
             },
 
             getNextProgressElement(state) {
@@ -336,13 +386,50 @@ and will be showing only the monitoring states
                 */
 
                 if(!state.monitoringstate)
+                {
+                    console.log('this is not a monitoring state')
                     return
+                }
                 if(state.complete)
+                {
+                    console.log('state is already completed')
                     return
+                }
 
 
-                //1. State is considered to be completed.
+                /*1. TO-DO: State is considered to be completed if
+                    1. check causal impact
+                    2. if causal impact and not initial state then return
+                    3. otherwise update state status
+                */
+
+                console.log('isinitial state',state, state.initial_state)
+
+
+                if (!state.initial_state)
+                {
+                    impact_complete = this.checkCausalImpact(state)
+                    console.log('causalimpact is',impact_complete)
+
+                    if(!impact_complete)
+                    {
+                        console.log('causal impact not complete yet')
+                        return
+                    }
+
+                }
+
+
                 state.complete = true
+
+                //1.a. set the similar elements in the current progress as complete
+
+                this.updateCurrentMonitoringState(state,curprg)
+
+
+
+                state.complete = true
+
 
                 pitch = 0.8
                 rate = 0.85
@@ -392,7 +479,7 @@ and will be showing only the monitoring states
                             else    //last node
                             {
                                 //2.a.b. set the status as complete and showNext as false
-                                console.log('progress_element',progress_element)
+                                //console.log('progress_element',progress_element)
                                 progress_element.complete = state.complete
                                 curIterProgress[idx].showNext = false
                             }
@@ -418,34 +505,143 @@ and will be showing only the monitoring states
                 //Output: returns true if all incoming connections are also complete
 
                 progress = this.progressOfNetwork[this.iteration].progress
-                status = true
-                index = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == to_element.id)
-                //console.log('checkCausalImpact:index', index)
+                console.log('progress',progress)
+                causal_effect_completed = false
+
+                for(var eindex = 0; eindex < to_element.inconnection.length; eindex++)
+                {
+                    felem_found = false
+                    felem_found_complete = false
+                    telem_found = false
+                    telem_found_complete = false
+
+                    elem = to_element.inconnection[eindex].value
+
+                    console.log('ELEM in to_element loop', elem)
+
+                    var pindex = 0
+                    for(pindex; pindex < progress.length; pindex++)
+                    {
+                        //check from elements
+                        from_element = progress[pindex].from
+                        //console.log('checkCausalImpact:progress loop', from_element, elem)
+                        if(elem == from_element.id)
+                        {
+                            felem_found = true
+                            console.log('FROM ELEMENT', from_element, from_element.complete)
+                            if(from_element.complete == true)
+                            {
+                                felem_found_complete = true
+                            }
+                            else
+                            {
+                                felem_found_complete = false
+                            }
+                        }
+                        //check to elements in the progress for completion
+                        to_elems = progress[pindex].to
+                        tidx = to_elems.findIndex(e => e.id == elem)
+                        if(tidx > -1)
+                        {
+                            telem_found = true
+                            to_elem = to_elems[tidx]
+                            if(to_elem.complete)
+                            {
+                                telem_found_complete = true
+                            }
+                        }
+
+
+                    }
+
+                    if(pindex == progress.length)
+                    {
+                        console.log('pindex == progress.length: felem_found_complete, felem_found', felem_found_complete, felem_found)
+                        if(felem_found == true)
+                            if(felem_found_complete == false)
+                                causal_effect_completed = false
+                            else
+                                causal_effect_completed = true
+                        else
+                        {   //check to elements
+                            console.log('pindex == progress.length: telem_found_complete, telem_found', telem_found_complete, telem_found)
+                            if(telem_found == true)
+                                if(telem_found_complete == false)
+                                    causal_effect_completed = false
+                                else
+                                    causal_effect_completed = true
+                        }
+                    }
+
+                }
+
+                return causal_effect_completed
+
+
+
+
+
+
+                //console.log('checkCausalImpact:index', to_element, index)
                 if(index > -1)
                 {
                     incoming_states = this.incomingBaseLevelNetwork[index].incoming_states
-                    for(i = 0; i < incoming_states.length;i++)
+                    //console.log('checkCausalImpact - incoming_states',incoming_states)
+                    // check from all incoming states
+
+                    //console.log('incoming_states.length',incoming_states.length,progress)
+
+                    for(i = 0; i < to_element.inconnection.length; i++)
                     {
-                        elem = incoming_states[i]
-                        idx = progress.findIndex(e => e.from.id == elem.id)
-                        if(idx > -1)
+                        incoming_conn = to_element.inconnection[i].value
+                        console.log('progress',progress)
+
+                        for(i = 0; i < progress.length; i++)
                         {
-                            from_elem = progress[idx].from
-                            completed = from_elem.complete
-                            if(!completed)
+                            e = progress[i].from
+                            console.log('incoming_conn',incoming_conn, elem.id)
+                            if(elem.id == incoming_conn)
                             {
-                                //console.log('completed',completed)
-                                return false
+                                console.log('XXXXXXX- incoming_conn',incoming_conn)
+                                /*if(e.complete == false)
+                                {
+                                    return false
+                                }*/
                             }
                         }
+
+
                     }
+
+
+
+                    /*for(i = 0; i < incoming_states.length;i++)
+                    {
+                        elem = incoming_states[i]
+                        //console.log('checkCausalImpact - elem', elem)
+
+                        flag = true
+                        //checking the progress elements if incoming elements are complete
+                        for(i = 0; i < progress.length; i++)
+                        {
+                            e = progress[i].from
+                            if(elem.id == e.id)
+                                if(e.complete == false)
+                                {
+                                    return false
+                                }
+
+
+                        }
+                    }*/
                 }
                 else
                 {
                     //check if it is the last node of process completed
+                    console.log('checkCausalImpact:element name', to_element.name)
                     if(to_element.id == '')
                     {
-                      //console.log('checkCausalImpact:element name', to_element.name)
+                      console.log('checkCausalImpact:element name', to_element.name)
                       last_index = this.incomingBaseLevelNetwork.length - 1
                       incoming_states = this.incomingBaseLevelNetwork[last_index].incoming_states
 
@@ -461,6 +657,8 @@ and will be showing only the monitoring states
                                //console.log('completed',completed)
                                if(!completed)
                                {
+                                   // console.log('checkCausalImpact 2 - completed',completed)
+
                                    return false
                                 }
                            }
@@ -470,6 +668,8 @@ and will be showing only the monitoring states
                    }
 
                 }
+                //console.log('checkCausalImpact 3 - completed',completed)
+
                 //console.log('status in causalimpact',status)
                 return status
             },
@@ -721,6 +921,8 @@ and will be showing only the monitoring states
                     elem = this.individualBaseLevelOutConnections[index].from
                     //check if from_elem is an initial state
                     initial_state = this.isInitialState(elem)
+                    if (initial_state)
+                        console.log("Initial state - elem",elem)
                     from_elem = this.createNewElement(elem)
                     from_elem.initial_state = initial_state
 
@@ -861,7 +1063,6 @@ and will be showing only the monitoring states
             {
                 //convert strings if any to boolean
                 var complete = (element.complete === 'true');
-
                 monitoringstate = false
                 if(element.monitoringstate == 'true' || element.monitoringstate == true)
                     monitoringstate = true
@@ -880,7 +1081,7 @@ and will be showing only the monitoring states
                 speed: element.speed,
                 successmsg: element.successmsg,
                 warningmsg: element.warningmsg,
-                initial_state: false,
+                initial_state: element.initial_state,
                 fout: false,
                 sentimentlbl: element.sentimentlbl
                 }

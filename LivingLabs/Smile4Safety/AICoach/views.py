@@ -51,51 +51,12 @@ def renderPage(request, page,dictelement):
 def main(request):
     #main function
     #return modelcreation(request)
-    return messagespecification(request)
+    #return messagespecification(request)
     return monitoring(request)
 
     #return createmodel(request)
     #return eventbasedmonitoring(request)
     return JsonResponse({"status": 'END OK'})
-
-def getsentiment(string):
-    ''' This function returns the maximum sentiment among positive, negative and neutral.'''
-    results = classifier(string)
-    maxelem = {"label": '', "score": 0}
-    for result in results:
-        score = result['score']
-        if score > maxelem['score']:
-            maxelem = result
-    return maxelem
-
-def analyzesentiments(list_model):
-    '''This function analyzes the sentiment of the states of the model'''
-    #str_model = modelobj.model_specification
-
-    #dict_model = json.loads(str_model)  # dict
-    base_model = list_model[0]
-
-    states = base_model['states']
-    for state in states:
-        id = state['id']
-        name = state['name']
-        '''sentiment analysis 
-            1. if state name is negative then set sentiment.
-            2. else if sucess message is negative then set sentiment as negative.
-        '''
-        sentiment = getsentiment(name)
-
-        if sentiment['label'] == 'Positive':
-            successmsg = state['successmsg']
-            sentiment = getsentiment(name)
-
-        state['sentimentlbl'] = sentiment['label']
-
-    base_model['states'] = states
-    list_model[0] = base_model
-
-    return list_model #returns list
-
 
 ##### Model specification with reference to world states
 ##### Model monitoring
@@ -220,122 +181,72 @@ def supportspecificationupdated(request):
 
 
 
-##### Model specification Old
+#Sentiment Analysis
+def getsentiment(string):
+    ''' This function returns the maximum sentiment among positive, negative and neutral.'''
+    results = classifier(string)
+    maxelem = {"label": '', "score": 0}
+    for result in results:
+        score = result['score']
+        if score > maxelem['score']:
+            maxelem = result
+    return maxelem
 
-#monitoring
-def eventbasedmonitoring(request):
-    ''' This function is used to monitor the model execution.
-        This renders the model with actionable and observation based states.
-        The states which are actionable have a message associated at the successful completion of the action.
-    '''
-    #fetches the last model
-    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
+def analyzesentiments(list_model):
+    '''This function analyzes the sentiment of the states of the model'''
+    #str_model = modelobj.model_specification
 
-    specs = modelobj.model_specification
+    #dict_model = json.loads(str_model)  # dict
+    base_model = list_model[0]
 
-    jsonData = json.loads(specs)
-    dict_model = {
-        'id': modelobj.model_id,
-        'name': modelobj.model_name,
-        'specification': jsonData
-    }
+    states = base_model['states']
+    for state in states:
+        id = state['id']
+        name = state['name']
+        '''sentiment analysis 
+            1. if state name is negative then set sentiment.
+            2. else if sucess message is negative then set sentiment as negative.
+        '''
+        sentiment = getsentiment(name)
 
-    dataJSON = json.dumps(dict_model)  # dict to str
+        if sentiment['label'] == 'Positive':
+            message = state['message']
+            sentiment = getsentiment(message)
 
-    return render(request, 'eventbasedmonitoring.html', {'data': dataJSON})  # 100% working with one direction tested
+        state['sentimentlbl'] = sentiment['label']
 
-def createmodel(request):
-    '''This function shows the interface to create the model.
-    Algorithm:
-        1. Load the combinationFunctions that will be used for fuction specifications for a model. It can be from DB.
-        It might use addcombinationfunction interface for this.
-    '''
+    base_model['states'] = states
+    list_model[0] = base_model
 
-    cwd = Path.cwd()
-    filename = str(cwd) + "\\AICoach\\templates\\combinationfunctionlibrary.json"
-    with open(filename) as json_file:
-        combinationFunctions = json.load(json_file)
-        # print(combinationFunctions)
-    dataJSON = dumps(combinationFunctions)
+    return list_model #returns list
 
-    return render(request, 'createmodel.html', {'data': dataJSON})
 
-def statespecification(request):
-
-    # writing new model to the database
+#Simulation related functions
+def setstatestatus(request):
+    #This function is used to set the status of the states
     if request.method == 'POST':
-        data = request.body     #retrieving model in bytes
+        data = request.body  # retrieving model in bytes
+        print(data)
 
-        # Decode UTF-8 bytes to Unicode, and convert single quotes
-        # to double quotes to make it valid JSON
-        str_model = data.decode('utf8').replace("'", '"')    # returns byte data as string
-        dict_model = json.loads(str_model) #dict
-        name = dict_model["name"]
-        specs = dict_model["stateMatrix"]
+        #TO-DO: do the simulation and update the database
 
-        # validate and database save
+        jsonData = json.loads(data)
+        dict_model = {
+            'data': jsonData
+        }
 
-        jsonspecs = json.dumps(specs)
+        #print(dict_model)
 
-        ModelSpecification.objects.create(model_name = name, model_specification= jsonspecs, last_modified =  datetime.now(timezone.utc))
-        return JsonResponse({"status": 'ModelSpecification object created - success statespecification'})
+        dataJSON = json.dumps(dict_model)  # dict to str
 
-    else:
-        return JsonResponse({"status": 'no model received'})
+        cwd = Path.cwd()
+        filename = str(cwd) + "\\AICoach\\templates\\intermediate_output.json"
 
-def actionspecification(request):
-    '''This function shows the interface to create the specification for the states. It takes
-    1. actionable/observatory
-    2. messages regarding the states
-    '''
-    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-
-    specs = modelobj.model_specification
-
-    ##formatting string to make it json
-
-    jsonData = json.loads(specs)
-
-    dict_model = {
-        'id': modelobj.model_id,
-        'name': modelobj.model_name,
-        'specification': jsonData
-    }
-
-    dataJSON = json.dumps(dict_model)  # dict to str
-
-    return render(request, 'actionspecification.html', {'data': dataJSON})
-
-def updatespecification(request):
-    '''This function
-    1. updates the role of each of the states
-    2. analyze the sentiments regarding the state name and the messages in it.
-    Therefore, it not only updates the roles of each state, but also updates the sentiments for the dialog
-
-    Save URL of actionspecification'''
-
-    if request.method == 'POST':
-        data = request.body     #retrieving model in bytes
+        with open(filename,"w" ) as outfile:
+            outfile.write(dataJSON)
+        print('file created')
+        return render(request, 'monitoring.html', {'data': dataJSON})  # redirecting to the same monitoring page
 
 
-        # Decode UTF-8 bytes to Unicode, and convert single quotes
-        # to double quotes to make it valid JSON
-        str_model = data.decode('utf8').replace("'", '"')    # returns byte data as string
-        dict_model = json.loads(str_model) #dict
 
-        id = dict_model["id"]
-        name = dict_model["name"]
-        modelobj = ModelSpecification.objects.get(model_id=id)
 
-        specs = dict_model["stateMatrix"]
-
-        #analyze the specs and set the sentiments
-        specs = analyzesentiments(specs)
-        modelobj.model_specification = json.dumps(specs)
-        modelobj.save()
-
-        return JsonResponse({"status": 'success to update'})
-
-def rolesspecificationupdated(request):
-    '''replica od rolesspcification updated: url of actionspecification'''
-    return JsonResponse({"status": 'Roles updated . Show success interface'})
