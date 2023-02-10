@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 
 # Create your views here.
@@ -222,31 +222,67 @@ def analyzesentiments(list_model):
 
 
 #Simulation related functions
+
+def getstatestatus(request):
+    #REF: https://stackoverflow.com/questions/43708387/django-display-json-or-httpresponse-in-template
+    data = progressOfNetwork
+    print('*******\n')
+    print(data)
+
+    return JsonResponse(data)
+
+
+progressOfNetwork = {}
 def setstatestatus(request):
     #This function is used to set the status of the states
     if request.method == 'POST':
         data = request.body  # retrieving model in bytes
         print(data)
 
-        #TO-DO: do the simulation and update the database
 
-        jsonData = json.loads(data)
-        dict_model = {
-            'data': jsonData
+        #1. update the global structure for the selected model.
+
+        model_input = json.loads(data) #returns dictionary
+
+        # TODO: do the simulation with updated values of states and update the database, and the model specifications.
+        # So the model_output would have the values from the simulation, will also look into completed states
+
+        ##dummy code
+        last_progress = {}
+        for key, value in model_input.items():
+            print(key, ":", value)
+            if(key == 'last_progress'):
+                last_progress = value
+
+        last_modified_index = len(last_progress) - 1
+        progress = last_progress[last_modified_index]['progress']
+
+        index = 1
+        from_elem = progress[index]['from']
+        from_elem['complete'] = 'true'
+
+        #updating the elements
+        attribute = 'complete'
+        value = True
+        progress[index]['from'][attribute] = value
+        last_progress[last_modified_index]['progress'] =  progress
+
+        model_input['last_progress'] = last_progress
+
+        ##dummy code
+
+
+        model_output = model_input
+
+        jsonData = json.dumps(model_output) # returns string
+
+
+        global progressOfNetwork
+        progressOfNetwork = {
+            'progress': jsonData
         }
 
-        #print(dict_model)
-
-        dataJSON = json.dumps(dict_model)  # dict to str
-
-        cwd = Path.cwd()
-        filename = str(cwd) + "\\AICoach\\templates\\intermediate_output.json"
-
-        with open(filename,"w" ) as outfile:
-            outfile.write(dataJSON)
-        print('file created')
-        return render(request, 'monitoring.html', {'data': dataJSON})  # redirecting to the same monitoring page
-
+        return HttpResponse(status=204)
 
 
 

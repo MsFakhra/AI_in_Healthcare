@@ -1286,10 +1286,14 @@ save() {
     //console.log(this.baseLevel)
     /* TO-DO:
     1. improve structure of code
-    2. validation checks
+    2. validation checks - TODO: Use https://www.youtube.com/watch?v=r7r45An_Lkc
     3. Setting the initial values for the states in the model (Optional)
     */
-     //check for incoming connections
+
+    //2. validation checks - TODO: Use https://www.youtube.com/watch?v=r7r45An_Lkc
+
+
+    //3. Setting the initial values for the states in the model (Optional)
      for (var i = 0; i < this.baseLevel.length; i++)
      {
         if(this.baseLevel[i].inconnection[0].value == "")
@@ -1297,7 +1301,8 @@ save() {
         else
             console.log(this.baseLevel[i].inconnection[0].value)
      }
-     console.log(this.baseLevel)
+
+     //console.log(this.baseLevel)
 
      axios({
         method: 'post',

@@ -26,4 +26,8 @@ urlpatterns = [
     #sending recieving data
     path('setstatestatus/', views.setstatestatus, name="setstatestatus"),
 
+    path('getstatestatus/', views.getstatestatus, name="getstatestatus"),
+
+
+
 ]
