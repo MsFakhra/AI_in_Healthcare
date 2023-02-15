@@ -6,6 +6,7 @@ from django.shortcuts import render
 import json
 from json import dumps
 from datetime import datetime, timezone
+
 from .models import ModelSpecification
 from pathlib import Path
 from transformers import RobertaTokenizer, RobertaForSequenceClassification
@@ -233,7 +234,19 @@ def getstatestatus(request):
 
 
 progressOfNetwork = {}
+
+from .simulation_controller import *
 def setstatestatus(request):
+    # This function is used to set the status of the states
+    if request.method == 'POST':
+        data = request.body  # retrieving model in bytes
+        simulation_controller(data)
+
+
+
+
+    return HttpResponse(status=204)
+
     #This function is used to set the status of the states
     if request.method == 'POST':
         data = request.body  # retrieving model in bytes
@@ -257,7 +270,7 @@ def setstatestatus(request):
         last_modified_index = len(last_progress) - 1
         progress = last_progress[last_modified_index]['progress']
 
-        index = 1
+        index = 2
         from_elem = progress[index]['from']
         from_elem['complete'] = 'true'
 

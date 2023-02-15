@@ -108,6 +108,40 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 if(from_elem.complete)
                 {
+
+                    to_elems = this.getToElementsofaState(from_elem,false)
+                    //console.log('SHOWNEXT - lastelem', to_elems)
+
+                    //2.a. if the state is already in the current progress then dont show but change the values accordingly.
+
+                    progress = this.progressOfNetwork[this.iteration].progress
+                    for(var i = 0; i < to_elems.length;i++){
+                        //check from elements
+                        fidx = progress.findIndex(e => e.from.id == to_elem.id)
+                        if(fidx == -1)
+                        {
+                            //check to elements
+                            tfound = true
+                            for(var j = 0; j < progress.length;j ++)
+                            {
+                                p_to_elems = progress[j].to
+                                tidx = p_to_elems.findIndex(e => e.id == to_elem.id)
+                                if(tidx == -1)
+                                    tfound = false
+                                else
+                                    if(to_elem.id != '')    //true implies it is at the end of the network
+                                        tfound = true
+
+                            }
+
+                            //console.log('tfound',tfound)
+                            if(tfound == false)
+                            {
+                                //place the element in the progress bar
+                                to_elems = this.getToElementsofaState(from_elem,true)
+                            }
+                        }
+                    }
                     // calls the statusupdate function to update all the model values
                     this.getStatusUpdate()
                 }
@@ -148,10 +182,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             /*  This function is called to continously update the values from django view for all the states in the model
             */
                 //console.log('TO-DO: get Status Update')
-                //console.log('TO-DO:progressOfNetwork',typeof(this.progressOfNetwork), this.progressOfNetwork)
+                console.log('TO-DO:progressOfNetwork',typeof(this.progressOfNetwork), this.progressOfNetwork)
+                curprg = this.progressOfNetwork[this.iteration].progress
 
-                curprg = this.progressOfNetwork[this.iteration]//.progress
-                //console.log('curprg',typeof(curprg), curprg)
+
 
                 try {
                     let data_url = './getstatestatus/'  //dont forget the trailing slash
@@ -221,7 +255,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 data: {
                     id: this.id,
                     name: this.name,
-                    incoming_connections: this.incomingBaseLevelNetwork,
                     last_progress: this.progressOfNetwork
                 },
                 headers: {//'Content-Type': 'application/json',
@@ -366,7 +399,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                  // 4. initialization of progressOfNetwork
                  this.initializeProgress()
-
             },//init
 
             initializeProgress()
@@ -381,10 +413,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 {
                     curiterEntry = this.outgoingBaseLevelNetwork[i]
                     show = curiterEntry.from.initial_state
-                    entry = this.createNewEntry(curiterEntry)
-                    progress.push(entry)
+                    if(show == true)
+                    {
+                        entry = this.createNewEntry(curiterEntry)
+                        progress.push(entry)
+                   }
                 }
-                this.progressOfNetwork[this.iteration] = {progress}
+                this.progressOfNetwork[this.iteration] = {progress: progress}
             },
 
             generateToElements(toelems){
