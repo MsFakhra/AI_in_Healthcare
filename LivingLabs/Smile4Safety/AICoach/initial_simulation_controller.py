@@ -2,187 +2,262 @@ import re, os
 import numpy as np
 import math
 import json as json
-from datetime import datetime
 ################# Controller methods
 
-def simulation_controller(data):
-    print('generating simulation')
-    statematrix = generateStateInformation(data)
-    generateSimulationResults(statematrix)
-    return statematrix
+def simulation_controller(data, firstcall = True):
+    print(data)
+    if(firstcall):
+        output = generateSimulation(data)
+    else:
+        print(data)
+    return output
+def getSimulationData():
+    print("get_simulation_data")
 
+def generateSimulation(data):
+    print('generating simulation')
+    endTimeofSimulation = 100
+    dt = 0.5
+
+    statematrix = generateStateInformation(data)
+
+    output = generateSimulationResults(statematrix, endTimeofSimulation, dt)
+
+    return output
 
 #implementation of simulation software
-
 def generateStateInformation(data):
     #This function generates the state information
+    print("generateStateInformation")
+    print(data)
 
     input = json.loads(data)  # returns dictionary
 
-    statematrix = []
-    level = -1
+    model_input = {}
     for key, value in input.items():
-        #print(key, ":", value)
-        if (key == 'base_level'):
-            model_input = value #returning dictionary having states
-            level = 0
-        else:
-            if (key == 'first_level'):
-                model_input = value#['states'] #returning list
-                level = 1
-            else:
-                if (key == 'second_level'):
-                    model_input = value#['states']
-                    level = 2
+        print(key, ":", value)
+        if (key == 'incoming_connections'):
+            model_input = value
+    statematrix = []
+    for info in model_input:
+        element = info
+        state = element['state']
+        #getting state information
+        id = state['id'] #X1
+        name = state['name']
+        inconnections = state['inconnection'] # return list of dictionaries
+        connectionweights = state['connectionweights']
+
+        speed = state['speed']
+        initvalue = state['initvalue']
+
+        combinationfunctions = state['combinationfunctions']
 
 
-        if (key == 'base_level' or key == 'first_level' or key == 'second_level'):
-            if(model_input):
-                for info in model_input:
-                    element = info
-                    state = element['state']
-                    id = state['id']  # X1
-                    name = state['name']
-                    inconnections = state['inconnection']  # return list of dictionaries
-                    connectionweights = state['connectionweights']
+        id = extractId(id)  # returns id as 1
+        incomingconnections = extractIncomingConnections(inconnections)
+        connectionweight = extractIncomingConnections(connectionweights,True) # returns connection weights
+        cfv_structure = extractCFVStructure(combinationfunctions)
 
-                    speed = float(state['speed'])
-                    initvalue = float(state['initvalue'])
-                    last_value = state['values'][-1]
-                    combinationfunctions = state['combinationfunctions']
-
-                    index = extractId(id)  # returns id as 1
-                    incomingconnections = extractIncomingConnections(inconnections)  # return incomingconnections
-                    connectionweight = extractIncomingConnections(connectionweights, True)  # returns connection weights
-                    cfv_structure = extractCFVStructure(combinationfunctions)
-
-                    state = State(id, index, name, incomingconnections, connectionweight, speed, initvalue, cfv_structure,level)
-                    statematrix.append(state)
-
-
-                    # set the initial values from the previous simulation results
-                    timestamp = last_value['timestamp']
-                    last_output = last_value['curvalue']
-                    soutput = StateOutput(timestamp, last_output)
-                    state.setOutputValues(soutput)
-
+        state = State(id,name,incomingconnections)
+        state.setConnectionWeight(connectionweight)
+        state.setSpeedFactor(speed)
+        state.setInitialValue(initvalue)
+        state.setCombinationFunctionStructure(cfv_structure)
+        statematrix.append(state)
     return statematrix
 
 ####SimulationResults####
-def generateSimulationResults(statematrix):
-    print('This generates the simulation for single iteration')
+def generateSimulationResults(statematrix, endTimeofSimulation=100, dt=1):
+    print('This generates the simulation')
+    ### Global Variables
 
-    curriteration = 0
-    cur_timestamp = datetime.now()
-    for state in statematrix:  # j for all states in the state matrix
-        index = state.index
-        speed = state.speed
-        connectionweight = state.connectionweight
-        cfv_structure = state.cfv_structure
-        stateinput = []
-        incomingconnections = state.incomingconnections
+    ###initializations
+    # X(:,1)=iv
+    for state in statematrix:
+        timestamp = 0  # t
+        iterationvalue = 0  # k
+        ####
+        output = state.initialvalue#[0]
+        soutput = StateOutput(timestamp, iterationvalue, output)
+        state.setOutputValues(soutput)
 
-        # updating the state connections with values the 'b' matrix
-        for connection in incomingconnections:
-            if not (is_valid_float(connection)):
-                statevalue = getStateOutputValues(connection, curriteration, statematrix)
-                stateinput.append(statevalue)
-            else:
-                stateinput.append(0)
-        stateinput = np.array(stateinput)
+    # for iteration in np.arange(1.0, endTimeofSimulation/dt, dt): # k
+    for nextiteration in range(1, int(endTimeofSimulation / dt)):  # k
+        curriteration = nextiteration - 1
+        for state in statematrix:  # j for all states in the state matrix
+            index = state.index
+            #####
+            speed = state.speed#[0]
+            connectionweight = state.connectionweight
+            cfv_structure = state.cfv_structure
+            stateinput = []
+            incomingconnections = state.incomingconnections
 
-        # updating the speed s matrix
-        """ if not(isnan(msa(j, 1)))
-            s(j, k) = X(msa(j, 1), k);   #k is the value at certain iteration"""
-        if not (is_valid_float(speed)):
-           adaptivestate = int(findAdaptiveState(speed))
-           adaptivestate_speed = statematrix[adaptivestate - 1]
-           speed = adaptivestate_speed.getOutputValues(curriteration)  # state.speed
+            # updating the state connections with values the 'b' matrix
+            for connection in incomingconnections:
+                if not (is_valid_float(connection)):
+                    statevalue = getStateOutputValues(connection, curriteration, statematrix)
+                    stateinput.append(statevalue)
+                else:
+                    stateinput.append(0)
+            stateinput = np.array(stateinput)
 
-        # updating the connection weights cw matrix
-        for weightindex in range(len(connectionweight)):
-            weight = connectionweight[weightindex]
-            if not (is_valid_float(weight)):
-                adaptivestate = int(findAdaptiveState(weight))
-                adaptivestate_weight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
-                connectionweight[weightindex] = adaptivestate_weight
-        connectionweight = np.array(connectionweight)
-        # state.setConnectionWeight(connectionweight)
+            # updating the speed s matrix
+            """ if not(isnan(msa(j, 1)))
+                s(j, k) = X(msa(j, 1), k);   #k is the value at certain iteration"""
+            if not (is_valid_float(speed)):
+                adaptivestate = int(findAdaptiveState(speed))
+                adaptivestate_speed = statematrix[adaptivestate - 1]
+                speed = adaptivestate_speed.getOutputValues(curriteration)  # state.speed
 
-        # updating the connection functions and parameters  mcfw and mcfp matrices
-        updated_cfv_structure = []
-        for sindex in range(len(cfv_structure)):
-            weight = cfv_structure[sindex].impactweight
-            if weight != 0:  # if certain fucntion is chosen, then look for parameters otherwise ignore it
-                id = cfv_structure[sindex].id
-                name = cfv_structure[sindex].name
-                noOfParams = cfv_structure[sindex].numberOfParams
-                params = cfv_structure[sindex].params
-                updated_cfv_element = CombiationFunctionStructure(id, name, noOfParams, weight)
+            # updating the connection weights cw matrix
+            for weightindex in range(len(connectionweight)):
+                weight = connectionweight[weightindex]
                 if not (is_valid_float(weight)):
                     adaptivestate = int(findAdaptiveState(weight))
-                    adaptivestate_pweight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
-                    updated_cfv_element.setWeight(adaptivestate_pweight)
-                else:
-                    updated_cfv_element.setWeight(float(weight))
+                    adaptivestate_weight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                    connectionweight[weightindex] = adaptivestate_weight
+            connectionweight = np.array(connectionweight)
+            # state.setConnectionWeight(connectionweight)
 
-                # if any of the params are adaptive they are updated
-                aparams = []
-                for param in params:
-                   if not (is_valid_float(param)):
-                        adaptivestate = int(findAdaptiveState(param))
-                        adaptivestate_param = statematrix[adaptivestate - 1].getOutputValues(curriteration)
-                        aparams.append(adaptivestate_param)
-                   else:
-                        aparams.append(float(param))
-                aparams = np.array(aparams)
-                updated_cfv_element.setParams(aparams)
-                updated_cfv_structure.append(updated_cfv_element)
-            # state.setCombinationFunctionStructure(updated_cfv_structure)
+            # updating the connection functions and parameters  mcfw and mcfp matrices
+            updated_cfv_structure = []
+            for sindex in range(len(cfv_structure)):
+                weight = cfv_structure[sindex].impactweight
+                if weight != 0:  # if certain fucntion is chosen, then look for parameters otherwise ignore it
+                    id = cfv_structure[sindex].id
+                    name = cfv_structure[sindex].name
+                    noOfParams = cfv_structure[sindex].numberOfParams
+                    params = cfv_structure[sindex].params
+                    updated_cfv_element = CombiationFunctionStructure(id, name, noOfParams, weight)
+                    if not (is_valid_float(weight)):
+                        adaptivestate = int(findAdaptiveState(weight))
+                        adaptivestate_pweight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                        updated_cfv_element.setWeight(adaptivestate_pweight)
+                    else:
+                        updated_cfv_element.setWeight(float(weight))
 
-        # Generating the output
-        """for m=1:1:nocf
-               cfv(j,m,k) = bcf(mcf(m), squeeze(cfp(j, :, m, k)), squeeze(cw(j, :, k)).*squeeze(b(j, :, k)));
-            end"""
-        # print(index, connectionweight, len(connectionweight))
-        # print(index, stateinput,len(stateinput))
-        singleimpactmatrix = stateinput * connectionweight  # singleimpactmatrix = b * cw = X * Omega = stateinput * connectionweight => it should be int
-        cfv_structure = updated_cfv_structure  # state.cfv_structure
+                    # if any of the params are adaptive they are updated
+                    aparams = []
+                    for param in params:
+                        if not (is_valid_float(param)):
+                            adaptivestate = int(findAdaptiveState(param))
+                            adaptivestate_param = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                            aparams.append(adaptivestate_param)
+                        else:
+                            aparams.append(float(param))
+                    aparams = np.array(aparams)
+                    updated_cfv_element.setParams(aparams)
+                    updated_cfv_structure.append(updated_cfv_element)
+                # state.setCombinationFunctionStructure(updated_cfv_structure)
 
-        timestamp = state.output[-1].timestamp
-        date_processing = timestamp.replace('@', '-').replace(':', '-').split('-')
-        date_processing = [int(v) for v in date_processing]
-        prev_timestamp = datetime(*date_processing)
+            # Generating the output
+            """for m=1:1:nocf
+                    cfv(j,m,k) = bcf(mcf(m), squeeze(cfp(j, :, m, k)), squeeze(cw(j, :, k)).*squeeze(b(j, :, k)));
+                  end"""
+            # print(index, connectionweight, len(connectionweight))
+            # print(index, stateinput,len(stateinput))
+            singleimpactmatrix = stateinput * connectionweight  # singleimpactmatrix = b * cw = X * Omega = stateinput * connectionweight => it should be int
+            cfv_structure = updated_cfv_structure  # state.cfv_structure
 
-        dt = (cur_timestamp - prev_timestamp).microseconds/1000000
-        cfv = []
-        cfw = []
-        for function in range(len(cfv_structure)):
-            cf_id = cfv_structure[function].id
-            cf_params = cfv_structure[function].params
-            cf_weight = cfv_structure[function].impactweight
-            ### calling the library functions
-            cf_impactvalue = computeCFValue(cf_id, cf_params, singleimpactmatrix, curriteration, dt)
-            cfw.append(cf_weight)
-            cfv.append(cf_impactvalue)
+            cfv = []
+            cfw = []
+            for function in range(len(cfv_structure)):
+                cf_id = cfv_structure[function].id
+                cf_params = cfv_structure[function].params
+                cf_weight = cfv_structure[function].impactweight
+                ### calling the library functions
+                cf_impactvalue = computeCFValue(cf_id, cf_params, singleimpactmatrix, curriteration, dt)
+                cfw.append(cf_weight)
+                cfv.append(cf_impactvalue)
 
-        """ aggimpact(j, k) = dot(cfw(j, :, k), cfv(j, :, k))/sum(cfw(j, :, k));"""
+            """ aggimpact(j, k) = dot(cfw(j, :, k), cfv(j, :, k))/sum(cfw(j, :, k));"""
 
-        aggimpact = np.dot(cfv, cfw)  # /sum(cfw)
+            aggimpact = np.dot(cfv, cfw)  # /sum(cfw)
 
-        """ X(j, k + 1) = X(j, k) + s(j, k) * (aggimpact(j, k) - X(j, k)) * dt"""
+            """ X(j, k + 1) = X(j, k) + s(j, k) * (aggimpact(j, k) - X(j, k)) * dt"""
+            # if index == 1 and nextiteration == 51:
+            #    x = 10
+            currentStateValue = state.getOutputValues(curriteration)
+            nextStateValue = currentStateValue + speed * (aggimpact - currentStateValue) * dt
 
-        currentStateValue = state.getOutputValues(curriteration)
-        nextStateValue = currentStateValue + speed * (aggimpact - currentStateValue) * dt
+            # setting Output
+            soutput = StateOutput(timestamp + dt, nextiteration, nextStateValue)
+            state.setOutputValues(soutput)
 
-        # setting Output
+            """ X(j, k + 1) = X(j, k) + s(j, k) * (aggimpact(j, k) - X(j, k)) * dt"""
+        timestamp = timestamp + dt  # t
+        # print("iteration value", nextiteration)
 
+    '''# Generate Output
+    for state in statematrix:
+        name = state.name
+        # print(name)
+        output = state.output
+        x_axis = []
+        y_axis = []
+        for o in output:
+            x_axis.append(o.timestamp)
+            y_axis.append(o.output)
+        plt.plot(x_axis, y_axis, label=name)
+        plt.legend(loc="upper right")
 
-        date_time = cur_timestamp.strftime("%Y-%m-%d@%H:%M:%S")
-        soutput = StateOutput(date_time, nextStateValue)
-        state.setOutputValues(soutput)
-        state.setFinalValue(nextStateValue)
+    # plt.show()
 
+    # interactive plot
+    outputlen = len(statematrix[0].output)
+
+    # Legend
+    colnames = []  # 'Duration']
+    for state in statematrix:
+        name = state.name
+        colnames.append(name)
+
+    outputmatrix = []  # colnames]
+
+    nameSwap = []
+    # Output Values
+    for i in range(outputlen):
+        row = []
+        putduration = True
+        putname = True
+        for state in statematrix:
+            name = state.name
+            if putname == True:
+                nameSwap.append(name)
+            out = state.output[i].output
+            timestamp = state.output[i].timestamp
+            if putduration == True:
+                row.append(timestamp)
+                putduration = False
+            row.append(out)
+
+        # outputmatrix.append(row)
+        outputmatrix.append(row)
+        putname = False
+
+    df = pd.DataFrame(outputmatrix)
+
+    # plotly
+
+    fig = px.line(df, x=0, y=df.columns[1:len(statematrix) + 1])
+
+    fig.for_each_trace(lambda t: t.update(name=nameSwap[int(t.name)],
+                                          legendgroup=nameSwap[int(t.name)],
+                                          hovertemplate=t.hovertemplate.replace(t.name, nameSwap[int(t.name)])
+                                          )
+                       )
+
+    fig.update_layout(
+        title="Simulation Results",
+        xaxis_title="--Time Duration (t) --",
+        yaxis_title="--Dynamic Values --",
+        legend_title="Color Legend")
+
+    fig.show()
+'''
+    # TODO in interface Please make sure X63 => value at index 62
 
 ## support functions
 
@@ -220,7 +295,7 @@ def extractIncomingConnections(inconnections,connectionweight = False):
         value = item['value']
         if(connectionweight == True):
             if(value != ''):
-                value = float(value)
+                value = int(value)
             else:
                 value = 0
         inconnection_list.append(value)
@@ -284,19 +359,16 @@ class CombiationFunctionStructure:
         self.impactweight = impactweight
 
 class State:
-    def __init__(self, id, index, name, b, cw,s,initvalue,cfv_structure,level):  # , iv, cw,cfw):
+    def __init__(self, index, name, b):  # , iv, cw,cfw):
         self.index = index
-        self.id = id
         self.name = name  # string
         self.incomingconnections = b  # matrix that takes states (in a row) as input
-        self.initialvalue = initvalue  # initial value int/float
-        self.finalvalue = 0    # final value int/float
-        self.connectionweight = cw  # matrix that takes connection weights (in a row) length should be equal to incoming states
-        self.cfv_structure = cfv_structure  # matrix using combination function
+        self.initialvalue = 0  # initial value int/float
+        self.connectionweight = []  # matrix that takes connection weights (in a row) length should be equal to incoming states
+        self.cfv_structure = []  # matrix using combination function
         self.output = []
         self.mcfw = []
-        self.speed = s
-        self.level = level
+        self.speed = 0
 
     def setOutputValues(self, output):
         self.output.append(output)
@@ -304,14 +376,6 @@ class State:
     def getOutputValues(self, iterationvalue):
         return self.output[iterationvalue].output
 
-    def getLastOutput(self, iterationvalue = -1):
-        return self.output[iterationvalue]
-
-    def getLevel(self):
-        return self.level
-
-    def getid(self):
-        return self.id
     def setSpeedFactor(self, speed):
         self.speed = speed
 
@@ -323,19 +387,12 @@ class State:
 
     def setInitialValue(self, iv):
         self.initialvalue = iv
-    def setFinalValue(self, fv):
-        self.finalvalue = fv
 
 class StateOutput:
-    def __init__(self, t, outputvalue):
+    def __init__(self, t, iterationvalue, outputvalue):
         self.timestamp = t  # time stamp of output per state
+        self.iterationvalue = iterationvalue  # k
         self.output = outputvalue  # value of the state
-
-    def getValue(self):
-        return self.output
-
-    def getTimeStamp(self):
-        return self.timestamp
 
 ############################### Start Library Code
 def normalizeValue(value):

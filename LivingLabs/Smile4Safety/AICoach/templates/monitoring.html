@@ -79,9 +79,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             iteration:0,
 
-            // Second Order Adaption
-            firstOrderLevel:[],
-            secondOrderLevel:[],
+            // Adaption Levels
+             firstOrderLevelNetwork:[], // this structure contains the first order level network
+             secondOrderLevelNetwork:[], //this structure contains the second order level network
 
 
             /////////////////////////////////////////////////////////////////
@@ -147,73 +147,85 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             async getStatusUpdate(){
             /*  This function is called to continously update the values from django view for all the states in the model
             */
-                //console.log('TO-DO: get Status Update')
-                //console.log('TO-DO:progressOfNetwork',typeof(this.progressOfNetwork), this.progressOfNetwork)
-
-                curprg = this.progressOfNetwork[this.iteration]//.progress
-                //console.log('curprg',typeof(curprg), curprg)
-
                 try {
                     let data_url = './getstatestatus/'  //dont forget the trailing slash
                     response = await axios.get(data_url);
-                    progress = response.data.progress;
-                    json_prg = JSON.parse(progress).last_progress
+                    rec_model_info = JSON.parse(response.data)    // model info received similar to the sent
+                    console.log('Before updation - model information recieved',rec_model_info)
+
+                    last_progress = rec_model_info.last_progress[this.iteration]
+                    base_level = rec_model_info.base_level
+                    first_level = rec_model_info.first_level
+                    second_level = rec_model_info.second_level
+
+
+                    //updation of matrices
+                    this.progressOfNetwork[this.iteration] = last_progress
+                    this.incomingBaseLevelNetwork = base_level
+                    this.firstOrderLevelNetwork = first_level
+                    this.secondOrderLevelNetwork = second_level
+
+
+                    console.log('After sending state status')
+                    console.log('base level network', this.incomingBaseLevelNetwork)
+                    console.log('first level network', this.firstOrderLevelNetwork)
+                    console.log('second level network', this.secondOrderLevelNetwork)
+                    console.log('progress', this.progressOfNetwork)
+
+
+
                 } catch (err) {
                     // Handle Error Here
                     console.error(err);
                 }
-
-                //console.log('Before Updation',this.progressOfNetwork[this.iteration].progress, json_prg)
-                //console.log('TYPEES',typeof(this.progressOfNetwork[this.iteration].progress), typeof(json_prg))
-
-                json_prg_arr_obj = json_prg[0]; // this have the progress element which is an array
-
-                console.log('Array Obj',json_prg_arr_obj.progress, typeof(json_prg_arr_obj))
-                //alert('hello')
-                //this.progressOfNetwork[this.iteration].progress = json_prg_arr_obj.progress
-
-                curprg = this.progressOfNetwork[this.iteration].progress
-                ret_prg = json_prg_arr_obj.progress
-
-                for (var i = 0; i < ret_prg.length; i++)
-                {
-                    elem = ret_prg[i].from
-                    console.log('prog elem',elem,curprg[i].from.complete)
-                    curprg[i].from.complete = elem.complete
-                }
-
-
-
-
-
             },
 
 
 
+            updateStateValues(curstate,level,timestamp){
+                /*This function updates the states values of the connections
+                    input: state that has been updated
+                    level:0/1/2
+                    timestamp: current timestamp
+                    if curstate is found it is initialized by certain value; otherwise last value is placed
+                */
 
+
+                if (level == 0)
+                    arr = this.incomingBaseLevelNetwork
+                else if (level == 1)
+                    arr = this.firstOrderLevelNetwork
+                else if (level == 2)
+                    arr = this.secondOrderLevelNetwork
+
+                for(var i = 0; i < arr.length; i++){
+                    incomingstate = arr[i].state
+                    values = incomingstate.values
+                    if(incomingstate.id == curstate.id && curstate.complete)
+                        curvalue = 1.0; //TODO: state.initvalue;
+                    else
+                        curvalue = incomingstate.values[incomingstate.values.length - 1].curvalue
+
+                    value = {curvalue:curvalue, timestamp:timestamp}
+                    values.push(value)
+                }
+            },
             sendStatusUpdate(state){
             /* This function sends the data to django view to start simulation
                At the same time, it will get the values updated from the simulation results
             */
 
-                values = state.values
+                //set the values for all three levels
+                timestamp = this.getTime();
+                this.updateStateValues(state,0,timestamp) //set the values for state at this.incomingBaseLevelNetwork
+                this.updateStateValues(state,1,timestamp) //set the values for state at this.firstOrderLevelNetwork
+                this.updateStateValues(state,2,timestamp) //set the values for state at this.firstOrderLevelNetwork
 
-                if(state.complete  && values.length == 1)
-                {
-                    curvalue = 1.0; //state.initvalue;
-                    timestamp = this.getTime();
-                    value = {curvalue:curvalue, timestamp:timestamp}
-                    values.push(value)
-                }
-                else if(state.complete)
-                {
-                    curvalue = 8.0; //get the last value from the simulation and then update the values accordingly
-                    timestamp = this.getTime();
-                    value = {curvalue:curvalue, timestamp:timestamp}
-                    values.push(value)
-                }
-
-                console.log('values',values)
+                console.log('Before sending state status')
+                console.log('base level network', this.incomingBaseLevelNetwork)
+                console.log('first level network', this.firstOrderLevelNetwork)
+                console.log('second level network', this.secondOrderLevelNetwork)
+                console.log('progress', this.progressOfNetwork)
 
                 axios({
                 method: 'post',
@@ -221,7 +233,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 data: {
                     id: this.id,
                     name: this.name,
-                    incoming_connections: this.incomingBaseLevelNetwork,
+                    base_level: this.incomingBaseLevelNetwork,
+                    first_level: this.firstOrderLevelNetwork,
+                    second_level: this.secondOrderLevelNetwork,
                     last_progress: this.progressOfNetwork
                 },
                 headers: {//'Content-Type': 'application/json',
@@ -246,12 +260,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             getTime(){
             //This method returns curr time
                 var currentdate = new Date();
-                var timestamp = "" + currentdate.getDate() + "/"
-                                   + (currentdate.getMonth()+1)  + "/"
-                                   + currentdate.getFullYear() + " @ "
+
+                var timestamp = "" + currentdate.getFullYear() + "-"
+                                   + (currentdate.getMonth()+1)  + "-"
+                                   + currentdate.getDate() + "@"
                                    + currentdate.getHours() + ":"
                                    + currentdate.getMinutes() + ":"
                                    + currentdate.getSeconds();
+
                 return timestamp
             },
 
@@ -349,8 +365,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                  specification = json_data.specification
 
                  baseModel = specification[0]
-                 this.incomingFirstOrderLevel = specification[1]
-                 this.incomingSecondOrderLevel = specification[2]
+                 //this.firstOrderLevelNetwork = specification[1]
+                 //this.secondOrderLevelNetwork = specification[2]
 
                  //2. generating stateMatrix
                  this.stateMatrix.push(specification[0])
@@ -358,10 +374,16 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                  this.stateMatrix.push(specification[2])
 
 
-                 //3. generating model matrix. This matrix consists of outgoing connections
+                 //3.a generating model matrix. This matrix consists of incoming connections
                  //console.log(baseModel)
-                 this.generateIncomingBaseLevelNetwork(baseModel)
+                 this.generateIncomingNetwork(specification[0],'base')
+                 this.generateIncomingNetwork(specification[1],'first')
+                 this.generateIncomingNetwork(specification[2],'second')
+
+                 //3.b. generating model matrix. This matrix consists of outgoing connections
                  this.generateOutgoingBaseLevelNetwork(baseModel)
+
+
 
 
                  // 4. initialization of progressOfNetwork
@@ -539,7 +561,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             //Incoming Network Model
 
-            generateIncomingBaseLevelNetwork(model){
+            generateIncomingNetwork(model,level){
                 /*  Function to extract the incoming states to make an incoming graph
                 Input: States like X1<-X1; X2<-X1
                 Output: X1<-null and X2<->X1
@@ -547,8 +569,19 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                    for(var i = 0; i < model.states.length; i++){
                       state = model.states[i]
-                      incoming_states = this.getIncomingStates(state,model)
-                      this.incomingBaseLevelNetwork.push({state: state, incoming_states: incoming_states})
+                      if(level == 'base')
+                      {
+                          incoming_states = this.getIncomingStates(state,model)
+                          this.incomingBaseLevelNetwork.push({state: state, incoming_states: incoming_states})
+                      }
+                      else if(level == 'first')
+                      {
+                        this.firstOrderLevelNetwork.push({state: state})
+                      }
+                      else if(level == 'second')
+                      {
+                        this.secondOrderLevelNetwork.push({state: state})
+                      }
                    }
             },
 

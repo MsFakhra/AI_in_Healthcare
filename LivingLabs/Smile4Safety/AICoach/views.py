@@ -226,76 +226,87 @@ def analyzesentiments(list_model):
 
 def getstatestatus(request):
     #REF: https://stackoverflow.com/questions/43708387/django-display-json-or-httpresponse-in-template
-    data = progressOfNetwork
-    print('*******\n')
+    data = request.session['progress']
+    print('getstatestatus')
+    print(type(data))
     print(data)
 
-    return JsonResponse(data)
+    '''data = progressOfNetwork
+    print('*******\n')
+    print(data)
+'''
+    return JsonResponse(data,safe = False)
+    #return HttpResponse(status=204)
 
 
-progressOfNetwork = {}
+global progressOfNetwork
 
 from .simulation_controller import *
+
+def updateModelSpecification(model_input,state):
+    for input in model_input:
+        stateinfo = input['state']
+        id = stateinfo['id']
+        if(state.getid() == id):
+            #print(input)
+            outputinfo = state.getLastOutput()
+            cur_val = outputinfo.getValue()
+            timestamp = outputinfo.getTimeStamp()
+            stateinfo['values'].append({'curvalue':cur_val , 'timestamp': timestamp})
+
+def updateProgressElement(progress_input,state):
+    for iteration in progress_input:
+
+        prginfo = iteration['progress']
+
+        for prg in prginfo:
+            #Updating from elements
+            id = prg['from']['id']
+            if (state.getid() == id):
+                outputinfo = state.getLastOutput()
+                cur_val = outputinfo.getValue()
+                timestamp = outputinfo.getTimeStamp()
+                prg['from']['values'].append({'curvalue':cur_val , 'timestamp':timestamp})
+
 def setstatestatus(request):
     # This function is used to set the status of the states
+
     if request.method == 'POST':
         data = request.body  # retrieving model in bytes
-        simulation_controller(data)
+        statematrix = simulation_controller(data)
 
+        model_input_sample = json.loads(data)  # returns dictionary
+        model_input = json.loads(data)  # returns dictionary
 
+        #TODO: simulation results have statematrix
+        # convert them into jsonData = json.dumps(simulation_results)
+
+        for state in statematrix:
+            level = state.getLevel()
+            if level == 0:
+                updateModelSpecification(model_input['base_level'],state)
+                updateProgressElement(model_input['last_progress'],state)
+            else:
+                if level == 1:
+                    updateModelSpecification(model_input['first_level'],state)
+                else:
+                    if level == 2:
+                        updateModelSpecification(model_input['second_level'],state)
+
+        #model_output = model_input_sample
+        model_output = model_input
+
+        jsonData = json.dumps(model_output)  # returns string
+
+        request.session['progress'] = jsonData
+
+        '''global progressOfNetwork
+        progressOfNetwork = {
+            'progress': jsonData
+        }'''
+        #progressOfNetwork = {
+        #    'progress': jsonData
+        #}
 
 
     return HttpResponse(status=204)
-
-    #This function is used to set the status of the states
-    if request.method == 'POST':
-        data = request.body  # retrieving model in bytes
-        print(data)
-
-
-        #1. update the global structure for the selected model.
-
-        model_input = json.loads(data) #returns dictionary
-
-        # TODO: do the simulation with updated values of states and update the database, and the model specifications.
-        # So the model_output would have the values from the simulation, will also look into completed states
-
-        ##dummy code
-        last_progress = {}
-        for key, value in model_input.items():
-            print(key, ":", value)
-            if(key == 'last_progress'):
-                last_progress = value
-
-        last_modified_index = len(last_progress) - 1
-        progress = last_progress[last_modified_index]['progress']
-
-        index = 2
-        from_elem = progress[index]['from']
-        from_elem['complete'] = 'true'
-
-        #updating the elements
-        attribute = 'complete'
-        value = True
-        progress[index]['from'][attribute] = value
-        last_progress[last_modified_index]['progress'] =  progress
-
-        model_input['last_progress'] = last_progress
-
-        ##dummy code
-
-
-        model_output = model_input
-
-        jsonData = json.dumps(model_output) # returns string
-
-
-        global progressOfNetwork
-        progressOfNetwork = {
-            'progress': jsonData
-        }
-
-        return HttpResponse(status=204)
-
-
-
