@@ -56,7 +56,9 @@ def generateStateInformation(data):
                     connectionweight = extractIncomingConnections(connectionweights, True)  # returns connection weights
                     cfv_structure = extractCFVStructure(combinationfunctions)
 
-                    state = State(id, index, name, incomingconnections, connectionweight, speed, initvalue, cfv_structure,level)
+                    complete = state['complete']
+                    #initial_state = state['initial_state']
+                    state = State(id, index, name, incomingconnections, connectionweight, speed, initvalue, cfv_structure,level,complete)#,initial_state)
                     statematrix.append(state)
 
 
@@ -179,9 +181,13 @@ def generateSimulationResults(statematrix):
 
 
         date_time = cur_timestamp.strftime("%Y-%m-%d@%H:%M:%S")
+
+        initial_state = state.isInitialState()
+
         soutput = StateOutput(date_time, nextStateValue)
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
+        state.setCompletionStatus()
 
 
 ## support functions
@@ -258,6 +264,11 @@ def extractCFVStructure(combinationfunctions):
 
 ########Simulation Software Used################
 
+######## ASSUMPTIONS
+
+THRESHOLD = 0.1
+
+#########
 class CombiationFunctionStructure:
     # matrix using combination function
     # [structure:{
@@ -284,7 +295,7 @@ class CombiationFunctionStructure:
         self.impactweight = impactweight
 
 class State:
-    def __init__(self, id, index, name, b, cw,s,initvalue,cfv_structure,level):  # , iv, cw,cfw):
+    def __init__(self, id, index, name, b, cw,s,initvalue,cfv_structure,level,complete):#,initial_state):
         self.index = index
         self.id = id
         self.name = name  # string
@@ -297,7 +308,19 @@ class State:
         self.mcfw = []
         self.speed = s
         self.level = level
+        self.complete = complete
+        #self.initial_state = initial_state
 
+
+    def isInitialState(self):
+        if (self.incomingconnections):
+            incominglist = self.incomingconnections
+            if(len(incominglist) == 1 and incominglist[0] != self.id):
+                return False
+            else:
+                return True
+        else:
+            return False
     def setOutputValues(self, output):
         self.output.append(output)
 
@@ -325,6 +348,12 @@ class State:
         self.initialvalue = iv
     def setFinalValue(self, fv):
         self.finalvalue = fv
+
+    def setCompletionStatus(self):
+        if (self.finalvalue > THRESHOLD):
+           self.complete = True
+        else:
+            self.complete = False
 
 class StateOutput:
     def __init__(self, t, outputvalue):

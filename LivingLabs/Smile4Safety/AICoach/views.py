@@ -227,8 +227,8 @@ def analyzesentiments(list_model):
 def getstatestatus(request):
     #REF: https://stackoverflow.com/questions/43708387/django-display-json-or-httpresponse-in-template
     data = request.session['progress']
-    print('getstatestatus')
-    print(type(data))
+    print('getstatestatus === sent data')
+    #print(type(data))
     print(data)
 
     '''data = progressOfNetwork
@@ -248,7 +248,7 @@ def updateModelSpecification(model_input,state):
         stateinfo = input['state']
         id = stateinfo['id']
         if(state.getid() == id):
-            #print(input)
+            stateinfo['complete'] = state.complete
             outputinfo = state.getLastOutput()
             cur_val = outputinfo.getValue()
             timestamp = outputinfo.getTimeStamp()
@@ -263,6 +263,7 @@ def updateProgressElement(progress_input,state):
             #Updating from elements
             id = prg['from']['id']
             if (state.getid() == id):
+                prg['from']['complete'] = state.complete
                 outputinfo = state.getLastOutput()
                 cur_val = outputinfo.getValue()
                 timestamp = outputinfo.getTimeStamp()
@@ -277,6 +278,9 @@ def setstatestatus(request):
 
         model_input_sample = json.loads(data)  # returns dictionary
         model_input = json.loads(data)  # returns dictionary
+
+        print("=======Model Input =========================")
+        print(model_input)
 
         #TODO: simulation results have statematrix
         # convert them into jsonData = json.dumps(simulation_results)
@@ -295,10 +299,14 @@ def setstatestatus(request):
 
         #model_output = model_input_sample
         model_output = model_input
+        print("=======Model Output =========================")
+        #print(model_output)
 
         jsonData = json.dumps(model_output)  # returns string
 
         request.session['progress'] = jsonData
+        print(jsonData)
+
 
         '''global progressOfNetwork
         progressOfNetwork = {

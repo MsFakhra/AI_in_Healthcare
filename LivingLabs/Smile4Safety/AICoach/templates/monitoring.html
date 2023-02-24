@@ -28,8 +28,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             <tr>
                                 <td>
                                     <div x-show="true"> <!--"!bstate.isinternal"-->
+                                        <span x-text="bstate.complete"></span>
                                         <button id="bstate.id" x-text="bstate.id + '-' + bstate.complete"  type="button"
-                                            @click="console.log('WORKING ON CHANGING THE COLOR AND DATA',bstate.fout);
+                                            @click="console.log('WORKING ON CHANGING THE COLOR AND DATA',bstate);
                                                 recordFromAction(curprg);
                                                 console.log('complete type',typeof(bstate.complete))"
                                             class="button button4"
@@ -87,7 +88,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             /////////////////////////////////////////////////////////////////
             // Event handlers
 
-            showNextProgressElement(curprg,istostate){
+            showNextProgressElement(curprg){
                 /* This function is called when user requests to show the next state.
                     it gets the next progress element based upon the clicked state.
                     1. curprg element is shown
@@ -106,11 +107,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 //console.log('from_elem',from_elem,this.progressOfNetwork)
 
-                if(from_elem.complete)
-                {
+                //if(from_elem.complete)
+                //{
                     // calls the statusupdate function to update all the model values
                     this.getStatusUpdate()
-                }
+                    console.log('this.progressOfNetwork[this.iteration]',this.progressOfNetwork[this.iteration])
+                //}
+
+
 
             },
 
@@ -160,13 +164,27 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
                     //updation of matrices
-                    this.progressOfNetwork[this.iteration] = last_progress
+
                     this.incomingBaseLevelNetwork = base_level
                     this.firstOrderLevelNetwork = first_level
                     this.secondOrderLevelNetwork = second_level
 
+                    curprg = this.progressOfNetwork[this.iteration].progress
+                    console.log("MATRICES   ", curprg,last_progress['progress'])
 
-                    console.log('After sending state status')
+                    for(var i = 0; i < last_progress['progress'].length; i++)
+                    {
+                        from_elem = last_progress['progress'][i].from
+                        //updation of status
+                        curprg[i].from.complete = from_elem.complete
+                        //TODO: update fout status if there are to elemets in parallel
+                        //updation of status
+
+
+                    }
+
+
+                    console.log('getStatusUpdate - updated matrices')
                     console.log('base level network', this.incomingBaseLevelNetwork)
                     console.log('first level network', this.firstOrderLevelNetwork)
                     console.log('second level network', this.secondOrderLevelNetwork)
@@ -190,7 +208,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     if curstate is found it is initialized by certain value; otherwise last value is placed
                 */
 
-
+                console.log('updateStateValues - curstate', curstate)
                 if (level == 0)
                     arr = this.incomingBaseLevelNetwork
                 else if (level == 1)
@@ -206,6 +224,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     else
                         curvalue = incomingstate.values[incomingstate.values.length - 1].curvalue
 
+                    incomingstate.complete = curstate.complete
                     value = {curvalue:curvalue, timestamp:timestamp}
                     values.push(value)
                 }
@@ -221,7 +240,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 this.updateStateValues(state,1,timestamp) //set the values for state at this.firstOrderLevelNetwork
                 this.updateStateValues(state,2,timestamp) //set the values for state at this.firstOrderLevelNetwork
 
-                console.log('Before sending state status')
+                console.log('Before sendStatusUpdate')
                 console.log('base level network', this.incomingBaseLevelNetwork)
                 console.log('first level network', this.firstOrderLevelNetwork)
                 console.log('second level network', this.secondOrderLevelNetwork)
