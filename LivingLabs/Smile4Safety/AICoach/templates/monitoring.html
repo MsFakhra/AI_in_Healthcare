@@ -12,7 +12,18 @@ and will be showing only the monitoring states
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 </script>
 
-<p> Model Monitoring</p>
+
+<h1> Model Monitoring</h1>
+
+<div x-data="{show:false}">
+  <template x-if="show">
+    <div>Show Data if true</div>
+  </template>
+  <button @click="show=!show">Click</button>
+</div>
+
+
+
 <div x-data="monitoringProgress">
 
 
@@ -28,11 +39,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             <tr>
                                 <td>
                                     <div x-show="true"> <!--"!bstate.isinternal"-->
-                                        <span x-text="bstate.complete"></span>
-                                        <button id="bstate.id" x-text="bstate.id + '-' + bstate.complete"  type="button"
-                                            @click="console.log('WORKING ON CHANGING THE COLOR AND DATA',bstate);
-                                                recordFromAction(curprg);
-                                                console.log('complete type',typeof(bstate.complete))"
+                                        <button id="bstate.id" x-text="bstate.name"  type="button"
+                                            @click="console.log('WORKING ON CHANGING THE COLOR AND DATA');
+                                                recordFromAction(curprg);"
                                             class="button button4"
                                             :class="{ 'bg-yellow-300': (bstate.monitoringstate && !bstate.complete),
                                                       'bg-green-500':  (bstate.monitoringstate && bstate.complete),
@@ -126,9 +135,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     Output: 1. State is considered to be completed.
                             2. Show other outgoing states which are not internal
                 */
+                //console.log('recordFromAction - before updation - base level network', this.incomingBaseLevelNetwork)
 
                 console.log('current progress,state clicked',curprg);
+
                 from_elem = curprg.from
+                console.log('from_elem', from_elem);
                 //1.a. set the state as completed
                 // preliminary checks
                 //1.a.a. if the state is already completed
@@ -137,8 +149,28 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     console.log('state is already completed')
                     return
                 }
+                //1.a.b. if all incoming connections are completed then make it true and update all matrices accordingly
 
-                from_elem.complete = true;
+                if(from_elem.initial_state)
+                {
+                    from_elem.complete = true;
+                    //update all matrices accordingly
+                    nextidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === from_elem.id )
+                    if (nextidx > -1)
+                    {
+                        this.incomingBaseLevelNetwork[nextidx].state.complete = true
+                        //console.log('STATUS', this.incomingBaseLevelNetwork[nextidx].state.complete)
+                    }
+
+
+                }
+                else
+                {
+                    //check the incoming connections status on the back end only.
+
+
+                }
+
 
                 //1.b. update the values of the current state
                 this.sendStatusUpdate(from_elem)
@@ -154,6 +186,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 try {
                     let data_url = './getstatestatus/'  //dont forget the trailing slash
                     response = await axios.get(data_url);
+                    //console.log('Before updation - data recieved',response.data)
                     rec_model_info = JSON.parse(response.data)    // model info received similar to the sent
                     console.log('Before updation - model information recieved',rec_model_info)
 
@@ -170,13 +203,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     this.secondOrderLevelNetwork = second_level
 
                     curprg = this.progressOfNetwork[this.iteration].progress
-                    console.log("MATRICES   ", curprg,last_progress['progress'])
+                    //console.log("MATRICES   ", curprg,last_progress['progress'])
 
                     for(var i = 0; i < last_progress['progress'].length; i++)
                     {
                         from_elem = last_progress['progress'][i].from
                         //updation of status
                         curprg[i].from.complete = from_elem.complete
+
                         //TODO: update fout status if there are to elemets in parallel
                         //updation of status
 
@@ -208,7 +242,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     if curstate is found it is initialized by certain value; otherwise last value is placed
                 */
 
-                console.log('updateStateValues - curstate', curstate)
+                //console.log('updateStateValues - curstate', curstate)
                 if (level == 0)
                     arr = this.incomingBaseLevelNetwork
                 else if (level == 1)
@@ -224,7 +258,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     else
                         curvalue = incomingstate.values[incomingstate.values.length - 1].curvalue
 
-                    incomingstate.complete = curstate.complete
+                    //incomingstate.complete = curstate.complete
                     value = {curvalue:curvalue, timestamp:timestamp}
                     values.push(value)
                 }
@@ -331,6 +365,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     else
                     {
                         //check if this is the last entry then show it as completed
+                        console.log('getToElementsofaState: from_state', from_state)
                         if(from_state.id == '')
                         {
 

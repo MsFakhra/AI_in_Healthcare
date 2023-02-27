@@ -69,6 +69,8 @@ def monitoring(request):
     '''
     #fetches the last model
     modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
+    #modelobj = ModelSpecification.objects.get(model_id=10)
+
 
     specs = modelobj.model_specification
 

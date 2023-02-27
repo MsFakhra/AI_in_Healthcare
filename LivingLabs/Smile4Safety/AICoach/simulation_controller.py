@@ -65,6 +65,8 @@ def generateStateInformation(data):
                     # set the initial values from the previous simulation results
                     timestamp = last_value['timestamp']
                     last_output = last_value['curvalue']
+                    if(np.isnan(last_output)):
+                        last_output = 0
                     soutput = StateOutput(timestamp, last_output)
                     state.setOutputValues(soutput)
 
@@ -74,20 +76,31 @@ def generateStateInformation(data):
 def generateSimulationResults(statematrix):
     print('This generates the simulation for single iteration')
 
-    curriteration = 0
+    curriteration = 1
+    last_iteration = 0
     cur_timestamp = datetime.now()
     for state in statematrix:  # j for all states in the state matrix
         index = state.index
+        if index == 5:
+            x = 10
         speed = state.speed
         connectionweight = state.connectionweight
         cfv_structure = state.cfv_structure
         stateinput = []
         incomingconnections = state.incomingconnections
+        completionstatus = True
 
         # updating the state connections with values the 'b' matrix
         for connection in incomingconnections:
+            #print('connection',connection)
             if not (is_valid_float(connection)):
-                statevalue = getStateOutputValues(connection, curriteration, statematrix)
+                statevalue = getStateOutputValues(connection, statematrix)#get the last value
+                ind_completionstatus = getIncomingCompletionStatus(connection,statematrix)
+                #print('completion status ', ind_completionstatus)
+
+                if(ind_completionstatus == False):
+                    completionstatus = ind_completionstatus
+                #statevalue = getStateOutputValues(connection, curriteration, statematrix)
                 stateinput.append(statevalue)
             else:
                 stateinput.append(0)
@@ -99,14 +112,14 @@ def generateSimulationResults(statematrix):
         if not (is_valid_float(speed)):
            adaptivestate = int(findAdaptiveState(speed))
            adaptivestate_speed = statematrix[adaptivestate - 1]
-           speed = adaptivestate_speed.getOutputValues(curriteration)  # state.speed
+           speed = adaptivestate_speed.getOutputValues()#curriteration)  # state.speed
 
         # updating the connection weights cw matrix
         for weightindex in range(len(connectionweight)):
             weight = connectionweight[weightindex]
             if not (is_valid_float(weight)):
                 adaptivestate = int(findAdaptiveState(weight))
-                adaptivestate_weight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                adaptivestate_weight = statematrix[adaptivestate - 1].getOutputValues()#curriteration)
                 connectionweight[weightindex] = adaptivestate_weight
         connectionweight = np.array(connectionweight)
         # state.setConnectionWeight(connectionweight)
@@ -123,7 +136,7 @@ def generateSimulationResults(statematrix):
                 updated_cfv_element = CombiationFunctionStructure(id, name, noOfParams, weight)
                 if not (is_valid_float(weight)):
                     adaptivestate = int(findAdaptiveState(weight))
-                    adaptivestate_pweight = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                    adaptivestate_pweight = statematrix[adaptivestate - 1].getOutputValues()#curriteration)
                     updated_cfv_element.setWeight(adaptivestate_pweight)
                 else:
                     updated_cfv_element.setWeight(float(weight))
@@ -133,7 +146,7 @@ def generateSimulationResults(statematrix):
                 for param in params:
                    if not (is_valid_float(param)):
                         adaptivestate = int(findAdaptiveState(param))
-                        adaptivestate_param = statematrix[adaptivestate - 1].getOutputValues(curriteration)
+                        adaptivestate_param = statematrix[adaptivestate - 1].getOutputValues()#curriteration)
                         aparams.append(adaptivestate_param)
                    else:
                         aparams.append(float(param))
@@ -174,7 +187,7 @@ def generateSimulationResults(statematrix):
 
         """ X(j, k + 1) = X(j, k) + s(j, k) * (aggimpact(j, k) - X(j, k)) * dt"""
 
-        currentStateValue = state.getOutputValues(curriteration)
+        currentStateValue = state.getOutputValues()#curriteration)
         nextStateValue = currentStateValue + speed * (aggimpact - currentStateValue) * dt
 
         # setting Output
@@ -183,11 +196,14 @@ def generateSimulationResults(statematrix):
         date_time = cur_timestamp.strftime("%Y-%m-%d@%H:%M:%S")
 
         initial_state = state.isInitialState()
-
+        if(np.isnan(nextStateValue)):   #if the results returned NaN then set the value as the last value received
+            nextStateValue = state.getOutputValues()
         soutput = StateOutput(date_time, nextStateValue)
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
-        state.setCompletionStatus()
+        state.setCompletionStatus(completionstatus)
+
+        x = 10
 
 
 ## support functions
@@ -199,14 +215,21 @@ def is_valid_float(element: str) -> bool:
     except ValueError:
         return False
 
-def getStateOutputValues(connection, curriteration, statematrix):
+def getStateOutputValues(connection, statematrix):
+    #this function retuens the last values
     index = int(re.findall(r'\d+', connection)[0])
     state = statematrix[index - 1]
-    outputvalue = state.getOutputValues(curriteration)
+    outputvalue = state.getOutputValues(-1)
     # print('state, curr iter, connection ', state.index, curriteration, connection, outputvalue)
 
     return outputvalue
 
+
+def getIncomingCompletionStatus(connection, statematrix):
+    index = int(re.findall(r'\d+', connection)[0])
+    state = statematrix[index - 1]
+    completionstatus = state.complete
+    return completionstatus
 
 def findAdaptiveState(astate):
     return re.findall(r'\d+', astate)[0]
@@ -266,7 +289,7 @@ def extractCFVStructure(combinationfunctions):
 
 ######## ASSUMPTIONS
 
-THRESHOLD = 0.1
+THRESHOLD = 0#.1
 
 #########
 class CombiationFunctionStructure:
@@ -324,7 +347,7 @@ class State:
     def setOutputValues(self, output):
         self.output.append(output)
 
-    def getOutputValues(self, iterationvalue):
+    def getOutputValues(self, iterationvalue = -1):
         return self.output[iterationvalue].output
 
     def getLastOutput(self, iterationvalue = -1):
@@ -349,11 +372,8 @@ class State:
     def setFinalValue(self, fv):
         self.finalvalue = fv
 
-    def setCompletionStatus(self):
-        if (self.finalvalue > THRESHOLD):
-           self.complete = True
-        else:
-            self.complete = False
+    def setCompletionStatus(self, completionstatus):
+       self.complete = completionstatus
 
 class StateOutput:
     def __init__(self, t, outputvalue):
