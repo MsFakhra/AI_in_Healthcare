@@ -216,7 +216,7 @@ def analyzesentiments(list_model):
             message = state['message']
             sentiment = getsentiment(message)
 
-        state['sentimentlbl'] = sentiment['label']
+        state['sentiment_lbl'] = sentiment['label']
 
     base_model['states'] = states
     list_model[0] = base_model
@@ -229,19 +229,16 @@ def analyzesentiments(list_model):
 def getstatestatus(request):
     #REF: https://stackoverflow.com/questions/43708387/django-display-json-or-httpresponse-in-template
     data = request.session['progress']
-    print('getstatestatus === sent data')
+    print('Views: getstatestatus === sent data')
     #print(type(data))
     print(data)
 
-    '''data = progressOfNetwork
-    print('*******\n')
-    print(data)
-'''
+
     return JsonResponse(data,safe = False)
     #return HttpResponse(status=204)
 
 
-global progressOfNetwork
+#global progressOfNetwork
 
 from .simulation_controller import *
 
@@ -253,8 +250,8 @@ def updateModelSpecification(model_input,state):
             stateinfo['complete'] = state.complete
             outputinfo = state.getLastOutput()
             cur_val = outputinfo.getValue()
-            timestamp = outputinfo.getTimeStamp()
-            stateinfo['values'].append({'curvalue':cur_val , 'timestamp': timestamp})
+            time_stamp = outputinfo.getTimeStamp()
+            stateinfo['values'].append({'cur_value':cur_val , 'time_stamp': time_stamp})
 
 def updateProgressElement(progress_input,state):
     for iteration in progress_input:
@@ -268,8 +265,8 @@ def updateProgressElement(progress_input,state):
                 prg['from']['complete'] = state.complete
                 outputinfo = state.getLastOutput()
                 cur_val = outputinfo.getValue()
-                timestamp = outputinfo.getTimeStamp()
-                prg['from']['values'].append({'curvalue':cur_val , 'timestamp':timestamp})
+                time_stamp = outputinfo.getTimeStamp()
+                prg['from']['values'].append({'curvalue':cur_val , 'time_stamp':time_stamp})
 
 def setstatestatus(request):
     # This function is used to set the status of the states
@@ -281,7 +278,7 @@ def setstatestatus(request):
         model_input_sample = json.loads(data)  # returns dictionary
         model_input = json.loads(data)  # returns dictionary
 
-        print("=======Model Input =========================")
+        print("=======Views:Model Input =========================")
         print(model_input)
 
         #TODO: simulation results have statematrix
@@ -309,14 +306,6 @@ def setstatestatus(request):
         request.session['progress'] = jsonData
         print(jsonData)
 
-
-        '''global progressOfNetwork
-        progressOfNetwork = {
-            'progress': jsonData
-        }'''
-        #progressOfNetwork = {
-        #    'progress': jsonData
-        #}
 
 
     return HttpResponse(status=204)

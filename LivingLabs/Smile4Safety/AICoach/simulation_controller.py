@@ -43,31 +43,31 @@ def generateStateInformation(data):
                     state = element['state']
                     id = state['id']  # X1
                     name = state['name']
-                    inconnections = state['inconnection']  # return list of dictionaries
-                    connectionweights = state['connectionweights']
+                    in_connections = state['in_connection']  # return list of dictionaries
+                    connection_weights = state['connection_weights']
 
                     speed = float(state['speed'])
-                    initvalue = float(state['initvalue'])
+                    init_value = float(state['init_value'])
                     last_value = state['values'][-1]
-                    combinationfunctions = state['combinationfunctions']
+                    combination_functions = state['combination_functions']
 
                     index = extractId(id)  # returns id as 1
-                    incomingconnections = extractIncomingConnections(inconnections)  # return incomingconnections
-                    connectionweight = extractIncomingConnections(connectionweights, True)  # returns connection weights
-                    cfv_structure = extractCFVStructure(combinationfunctions)
+                    incomingconnections = extractIncomingConnections(in_connections)  # return incomingconnections
+                    connectionweight = extractIncomingConnections(connection_weights, True)  # returns connection weights
+                    cfv_structure = extractCFVStructure(combination_functions)
 
                     complete = state['complete']
                     #initial_state = state['initial_state']
-                    state = State(id, index, name, incomingconnections, connectionweight, speed, initvalue, cfv_structure,level,complete)#,initial_state)
+                    state = State(id, index, name, incomingconnections, connectionweight, speed, init_value, cfv_structure,level,complete)#,initial_state)
                     statematrix.append(state)
 
 
                     # set the initial values from the previous simulation results
-                    timestamp = last_value['timestamp']
-                    last_output = last_value['curvalue']
+                    time_stamp = last_value['time_stamp']
+                    last_output = last_value['cur_value']
                     if(np.isnan(last_output)):
                         last_output = 0
-                    soutput = StateOutput(timestamp, last_output)
+                    soutput = StateOutput(time_stamp, last_output)
                     state.setOutputValues(soutput)
 
     return statematrix
@@ -78,13 +78,13 @@ def generateSimulationResults(statematrix):
 
     curriteration = 1
     last_iteration = 0
-    cur_timestamp = datetime.now()
+    cur_time_stamp = datetime.now()
     for state in statematrix:  # j for all states in the state matrix
         index = state.index
         if index == 5:
             x = 10
         speed = state.speed
-        connectionweight = state.connectionweight
+        connection_weights = state.connection_weights
         cfv_structure = state.cfv_structure
         stateinput = []
         incomingconnections = state.incomingconnections
@@ -115,14 +115,14 @@ def generateSimulationResults(statematrix):
            speed = adaptivestate_speed.getOutputValues()#curriteration)  # state.speed
 
         # updating the connection weights cw matrix
-        for weightindex in range(len(connectionweight)):
-            weight = connectionweight[weightindex]
+        for weightindex in range(len(connection_weights)):
+            weight = connection_weights[weightindex]
             if not (is_valid_float(weight)):
                 adaptivestate = int(findAdaptiveState(weight))
                 adaptivestate_weight = statematrix[adaptivestate - 1].getOutputValues()#curriteration)
-                connectionweight[weightindex] = adaptivestate_weight
-        connectionweight = np.array(connectionweight)
-        # state.setConnectionWeight(connectionweight)
+                connection_weights[weightindex] = adaptivestate_weight
+        connection_weights = np.array(connection_weights)
+        # state.setConnectionWeight(connection_weights)
 
         # updating the connection functions and parameters  mcfw and mcfp matrices
         updated_cfv_structure = []
@@ -159,17 +159,17 @@ def generateSimulationResults(statematrix):
         """for m=1:1:nocf
                cfv(j,m,k) = bcf(mcf(m), squeeze(cfp(j, :, m, k)), squeeze(cw(j, :, k)).*squeeze(b(j, :, k)));
             end"""
-        # print(index, connectionweight, len(connectionweight))
+        # print(index, connection_weights, len(connection_weights))
         # print(index, stateinput,len(stateinput))
-        singleimpactmatrix = stateinput * connectionweight  # singleimpactmatrix = b * cw = X * Omega = stateinput * connectionweight => it should be int
+        singleimpactmatrix = stateinput * connection_weights  # singleimpactmatrix = b * cw = X * Omega = stateinput * connection_weights => it should be int
         cfv_structure = updated_cfv_structure  # state.cfv_structure
 
-        timestamp = state.output[-1].timestamp
-        date_processing = timestamp.replace('@', '-').replace(':', '-').split('-')
+        time_stamp = state.output[-1].time_stamp
+        date_processing = time_stamp.replace('@', '-').replace(':', '-').split('-')
         date_processing = [int(v) for v in date_processing]
-        prev_timestamp = datetime(*date_processing)
+        prev_time_stamp = datetime(*date_processing)
 
-        dt = (cur_timestamp - prev_timestamp).microseconds/1000000
+        dt = (cur_time_stamp - prev_time_stamp).microseconds/1000000
         cfv = []
         cfw = []
         for function in range(len(cfv_structure)):
@@ -193,7 +193,7 @@ def generateSimulationResults(statematrix):
         # setting Output
 
 
-        date_time = cur_timestamp.strftime("%Y-%m-%d@%H:%M:%S")
+        date_time = cur_time_stamp.strftime("%Y-%m-%d@%H:%M:%S")
 
         initial_state = state.isInitialState()
         if(np.isnan(nextStateValue)):   #if the results returned NaN then set the value as the last value received
@@ -240,29 +240,29 @@ def extractId(id):
     id_array = re.findall(r'\d+', id)
     return int(id_array[0])
 
-def extractIncomingConnections(inconnections,connectionweight = False):
+def extractIncomingConnections(in_connections,connection_weights = False):
     # input: list of dictionaries
     # returns matrix that constains incoming states
 
-    inconnection_list = []
-    for item in inconnections:
+    in_connection_list = []
+    for item in in_connections:
         value = item['value']
-        if(connectionweight == True):
+        if(connection_weights == True):
             if(value != ''):
                 value = float(value)
             else:
                 value = 0
-        inconnection_list.append(value)
-    return inconnection_list
-def extractCFVStructure(combinationfunctions):
+        in_connection_list.append(value)
+    return in_connection_list
+def extractCFVStructure(combination_functions):
     #input: list
     # matrix using combination function
     cfv_structure = []
-    for combinationfunction in combinationfunctions:
+    for combinationfunction in combination_functions:
         id = int(combinationfunction['id'])
         name = combinationfunction['name']
-        impactweight = float(combinationfunction['functionWeight'])
-        numberOfParams = int(combinationfunction['numberOfPossibleParams'])
+        impactweight = float(combinationfunction['function_weight'])
+        numberOfParams = int(combinationfunction['number_of_possible_params'])
         parameters = combinationfunction['parameters']
         params = []
         for parameter in parameters:
@@ -318,14 +318,14 @@ class CombiationFunctionStructure:
         self.impactweight = impactweight
 
 class State:
-    def __init__(self, id, index, name, b, cw,s,initvalue,cfv_structure,level,complete):#,initial_state):
+    def __init__(self, id, index, name, b, cw,s,init_value,cfv_structure,level,complete):#,initial_state):
         self.index = index
         self.id = id
         self.name = name  # string
         self.incomingconnections = b  # matrix that takes states (in a row) as input
-        self.initialvalue = initvalue  # initial value int/float
+        self.initialvalue = init_value  # initial value int/float
         self.finalvalue = 0    # final value int/float
-        self.connectionweight = cw  # matrix that takes connection weights (in a row) length should be equal to incoming states
+        self.connection_weights = cw  # matrix that takes connection weights (in a row) length should be equal to incoming states
         self.cfv_structure = cfv_structure  # matrix using combination function
         self.output = []
         self.mcfw = []
@@ -362,7 +362,7 @@ class State:
         self.speed = speed
 
     def setConnectionWeight(self, mcw):
-        self.connectionweight = mcw  # matrix that takes connection weights (in a row)
+        self.connection_weights = mcw  # matrix that takes connection weights (in a row)
 
     def setCombinationFunctionStructure(self, cf):
         self.cfv_structure = cf
@@ -377,14 +377,14 @@ class State:
 
 class StateOutput:
     def __init__(self, t, outputvalue):
-        self.timestamp = t  # time stamp of output per state
+        self.time_stamp = t  # time stamp of output per state
         self.output = outputvalue  # value of the state
 
     def getValue(self):
         return self.output
 
     def getTimeStamp(self):
-        return self.timestamp
+        return self.time_stamp
 
 ############################### Start Library Code
 def normalizeValue(value):

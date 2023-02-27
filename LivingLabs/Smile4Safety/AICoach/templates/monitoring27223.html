@@ -33,12 +33,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             <div>
                 <hr>
                 <!--Iteration <span x-text="pindex"></span>-->
-                <template x-for="(prg,prgindex) in progress.cur_progress" :key="prgindex">
+                <template x-for="(prg,prgindex) in progress.progress" :key="prgindex">
                     <div  x-data="{curprg: prg, bstate:prg.from, stateclicked: prg.from, istostate:false}">
                         <table>
                             <tr>
                                 <td>
-                                    <div x-show="true"> <!--"!bstate.is_internal"-->
+                                    <div x-show="true"> <!--"!bstate.isinternal"-->
                                         <button id="bstate.id" x-text="bstate.name"  type="button"
                                             @click="console.log('WORKING ON CHANGING THE COLOR AND DATA');
                                                 recordFromAction(curprg);"
@@ -118,7 +118,17 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     //this.completeProgressOfNetwork[this.iteration] = {progress: progress}
                 */
 
+                from_elem = curprg.from
+                to_elems = curprg.to
+                //if the element is already in  the progress skip it otherwise show
+
+                //console.log('from_elem',from_elem,this.completeProgressOfNetwork)
+
+                // calls the statusupdate function to update all the model values
                 this.getStatusUpdate()
+                //console.log('this.completeProgressOfNetwork[this.iteration]',this.completeProgressOfNetwork[this.iteration])
+
+
 
             },
 
@@ -135,7 +145,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 console.log('current progress,state clicked',curprg);
 
                 from_elem = curprg.from
-                //console.log('from_elem', from_elem);
+                console.log('from_elem', from_elem);
                 //1.a. set the state as completed
                 // preliminary checks
                 //1.a.a. if the state is already completed
@@ -196,28 +206,17 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     this.secondOrderLevelNetwork = second_level
 
                     curprg = this.completeProgressOfNetwork[this.iteration].progress
-
-                    //console.log('last_progress',last_progress)
-                    //console.log('curprg',curprg)
-                    //console.log('this.curProgress[this.iteration]',this.curProgress[this.iteration])
                     for(var i = 0; i < last_progress['progress'].length; i++)
                     {
                         from_elem = last_progress['progress'][i].from
-                        console.log('from_elem',from_elem)
                         //updation of status in completeProgressOfNetwork
                         curprg[i].from.complete = from_elem.complete
-
                         if(from_elem.complete)
                         {
                             //if it is not already in current progress then append it
-                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
-                            //console.log('idx',idx)
+                            idx = this.curProgress[this.iteration].progress.findIndex(e => e.from.id == from_elem.id)
                             if(idx < 0)
-                            {
-                                is_internal = from_elem.is_internal
-                                if(!is_internal)
-                                    this.curProgress[this.iteration].cur_progress.push(curprg[i])
-                            }
+                                this.curProgress[this.iteration].progress.push(curprg[i])
                         }
 
                         //TODO: update fout status if there are to elemets in parallel
@@ -243,11 +242,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
 
-            updateStateValues(curstate,level,time_stamp){
+            updateStateValues(curstate,level,timestamp){
                 /*This function updates the states values of the connections
                     input: state that has been updated
                     level:0/1/2
-                    time_stamp: current time_stamp
+                    timestamp: current timestamp
                     if curstate is found it is initialized by certain value; otherwise last value is placed
                 */
 
@@ -263,12 +262,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     incomingstate = arr[i].state
                     values = incomingstate.values
                     if(incomingstate.id == curstate.id && curstate.complete)
-                        cur_value = state.init_value;
+                        curvalue = 1.0; //TODO: state.initvalue;
                     else
-                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
+                        curvalue = incomingstate.values[incomingstate.values.length - 1].curvalue
 
                     //incomingstate.complete = curstate.complete
-                    value = {cur_value:cur_value, time_stamp:time_stamp}
+                    value = {curvalue:curvalue, timestamp:timestamp}
                     values.push(value)
                 }
             },
@@ -278,16 +277,16 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             */
 
                 //set the values for all three levels
-                time_stamp = this.getTime();
-                this.updateStateValues(state,0,time_stamp) //set the values for state at this.incomingBaseLevelNetwork
-                this.updateStateValues(state,1,time_stamp) //set the values for state at this.firstOrderLevelNetwork
-                this.updateStateValues(state,2,time_stamp) //set the values for state at this.firstOrderLevelNetwork
+                timestamp = this.getTime();
+                this.updateStateValues(state,0,timestamp) //set the values for state at this.incomingBaseLevelNetwork
+                this.updateStateValues(state,1,timestamp) //set the values for state at this.firstOrderLevelNetwork
+                this.updateStateValues(state,2,timestamp) //set the values for state at this.firstOrderLevelNetwork
 
                 console.log('Before sendStatusUpdate')
                 console.log('base level network', this.incomingBaseLevelNetwork)
                 console.log('first level network', this.firstOrderLevelNetwork)
                 console.log('second level network', this.secondOrderLevelNetwork)
-                console.log('last_progress', this.completeProgressOfNetwork)
+                console.log('progress', this.completeProgressOfNetwork)
 
                 axios({
                 method: 'post',
@@ -323,14 +322,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             //This method returns curr time
                 var currentdate = new Date();
 
-                var time_stamp = "" + currentdate.getFullYear() + "-"
+                var timestamp = "" + currentdate.getFullYear() + "-"
                                    + (currentdate.getMonth()+1)  + "-"
                                    + currentdate.getDate() + "@"
                                    + currentdate.getHours() + ":"
                                    + currentdate.getMinutes() + ":"
                                    + currentdate.getSeconds();
 
-                return time_stamp
+                return timestamp
             },
 
             getToElementsofaState(state, produce = true){
@@ -461,30 +460,26 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 */
 
                 progress = []
-                cur_progress = []
+                initial_progress = []
                 //populating the network with the initial states
                 for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
                 {
                     curiterEntry = this.outgoingBaseLevelNetwork[i]
                     initial_state = curiterEntry.from.initial_state
-                    is_internal = curiterEntry.from.is_internal
-                    if(!is_internal)
-
-                    //console.log('initial_state',initial_state)
+                    console.log('initial_state',initial_state)
                     entry = this.createNewEntry(curiterEntry)
                     progress.push(entry)
                     if(initial_state)
                     {
-                        if(!is_internal)
-                            cur_progress.push(entry)
+                        initial_progress.push(entry)
                     }
 
                 }
-                console.log('progress',progress,this.outgoingBaseLevelNetwork)
                 this.completeProgressOfNetwork[this.iteration] = {progress}
-                if(cur_progress.length > 0)
+                if(initial_progress.length > 0)
                 {
-                    this.curProgress[this.iteration] = {cur_progress}
+                    progress = initial_progress
+                    this.curProgress[this.iteration] = {progress}
                 }
 
             },
@@ -523,7 +518,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 incomingGraph = []
 
-
                 for (index = 0; index < this.individualBaseLevelOutConnections.length; index++)
                 {
                     //generating from element
@@ -544,7 +538,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     to_elems=[]
 
                     idx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === from_elem.id)
-                    //console.log('idx,from_elem', idx, from_elem)
+                    console.log('idx,from_elem', idx, from_elem)
 
                     if(idx == -1)
                     {
@@ -583,54 +577,48 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 Input: States like X2<-X1; X3<-X1
                 Output: X1->X2 and X1->X3
                 */
-                console.log('states', model.states)
+
                 for(var i = 0; i < model.states.length; i++){
                     state = model.states[i];
-                    console.log('state', state)
                     this.getOutgoingStates(state, model)
                 }
            },
 
-           getOutgoingStates(state, model){
+           getOutgoingStates(to_state, model){
             /*  Function to extract the incoming states to make an outgoing graph
                 Input: States like X2<-X1; X3<-X1
                 Output: X1->X2 and X1->X3
             */
                    sid = state.id.toLowerCase()
-                   //console.log('state id',sid)
                    found = false
                    //console.log('states', model.states)
                    for(i = 0; i< model.states.length;i++)
                    {
-                       incoming = model.states[i].in_connection
+                       incoming = model.states[i].inconnection
                        for(j = 0; j < incoming.length;j++)
                        {
-                            ostate = model.states[i]
                             val = incoming[j].value.toLowerCase()
-                            //console.log('ostate',ostate,val)
                             if( val == sid)
                             {
                                 found = true
-                                ostateid = ostate.id.toLowerCase()
-                                console.log('found',found,ostate,sid)
-                                if(ostate != sid) //avoiding self-reference
+                                ostate = model.states[i]
+                                if(ostate != state) //avoiding self-reference
                                 {
                                     this.individualBaseLevelOutConnections.push({'from':state, 'to':ostate})
                                 }
                             }
                        }
-
                    }
+                   //if (found)
                    if (!found)
                    {
                       toelem = this.createNewElement() //process completed
                       toelem.name = 'Klaar'
-                      toelem.user_name = 'Klaar'
+                      toelem.username = 'Klaar'
 
                       this.individualBaseLevelOutConnections.push({'from':state, 'to':toelem})
                    }
-
-                   //console.log('individual',this.individualBaseLevelOutConnections)
+                   console.log('individual',this.individualBaseLevelOutConnections)
            },
 
            isInitialState(state)
@@ -690,7 +678,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                    found = false
                    idx = model.states.findIndex(e => e.id.toLowerCase() == sid)
-                   incoming = model.states[idx].in_connection
+                   incoming = model.states[idx].inconnection
                    //iterate the incoming states data structure
                    incoming_states = []
                    for(var i = 0; i < incoming.length; i++){
@@ -719,24 +707,24 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
               {
                     //convert strings if any to boolean
                     var complete = (element.complete === 'true');
-                    is_internal = false
-                    if(element.is_internal == 'true' || element.is_internal == true)
-                        is_internal = true
+                    isinternal = false
+                    if(element.isinternal == 'true' || element.isinternal == true)
+                        isinternal = true
 
                     elem = {
                     id: element.id,
                     name: element.name,
-                    user_name: element.user_name,
-                    combination_functions:element.combination_functions,
-                    connection_weights: element.connection_weights,
-                    in_connection: element.in_connection,
-                    init_value: element.init_value,
-                    show_param_btn: element.show_param_btn,
+                    username: element.username,
+                    combinationfunctions:element.combinationfunctions,
+                    connectionweights: element.connectionweights,
+                    inconnection: element.inconnection,
+                    initvalue: element.initvalue,
+                    showParamBtn: element.showParamBtn,
                     speed: element.speed,
                     message: element.message,
-                    sentiment_lbl: element.sentiment_lbl,
+                    sentimentlbl: element.sentimentlbl,
                     complete: complete,
-                    is_internal:element.is_internal,
+                    isinternal:element.isinternal,
                     values:element.values,
                     initial_state: element.initial_state,
                     fout: false
@@ -748,17 +736,17 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
               elem = {
                     id: '',
                     name: '',
-                    user_name: '',
-                    combination_functions:[],
-                    connection_weights: [],
-                    in_connection: [],
-                    init_value: 0,
-                    show_param_btn: false,
+                    username: '',
+                    combinationfunctions:[],
+                    connectionweights: [],
+                    inconnection: [],
+                    initvalue: 0,
+                    showParamBtn: false,
                     speed: 0,
                     message: [],
-                    sentiment_lbl: 'Positive',
+                    sentimentlbl: 'Positive',
                     complete:false,
-                    is_internal:false,
+                    isinternal:false,
                     values:[],
                     initial_state:false,
                     fout: false

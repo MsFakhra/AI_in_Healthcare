@@ -29,7 +29,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             </td>
                             <!-- State name with tooltip-->
                             <td>
-                                <div x-data="{ message: bstate.username }">
+                                <div x-data="{ message: bstate.user_name }">
                                     <template x-ref="template">
                                         <p x-text="message"></p>
                                     </template>
@@ -46,13 +46,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                 <table>
                                     <tr>
                                         <td>
-                                            <select class="form-select" x-model="bstate.isinternal" x-on:change="showandSetParameters(bindex)">
+                                            <select class="form-select" x-model="bstate.is_internal" x-on:change="showandSetParameters(bindex)">
                                                     <option value="true"> Internal State</option>
                                                     <option value="false"> Actionable / Observation State</option>
                                             </select>
                                         </td>
                                         <td>
-                                            <td x-show="!bstate.isinternal">
+                                            <td x-show="!bstate.is_internal">
                                                 <textarea x-model="bstate.message" placeholder="Enter sample messages one per line" class="form-control" rows="3" x-on:change="checkandUpdate(bstate)"></textarea>
                                             </td>
                                         </td>
@@ -114,11 +114,11 @@ function coachSpecification(){
 
  for (var i = 0; i < this.baseLevel.states.length; i++)
  {
-    if (this.baseLevel.states[i].isinternal == "false")
-        this.baseLevel.states[i].isinternal = false
+    if (this.baseLevel.states[i].is_internal == "false")
+        this.baseLevel.states[i].is_internal = false
     else
-        if(this.baseLevel.states[i].isinternal == "true")
-            this.baseLevel.states[i].isinternal = true
+        if(this.baseLevel.states[i].is_internal == "true")
+            this.baseLevel.states[i].is_internal = true
  }
 
  this.stateMatrix.push(this.baseLevel)
@@ -129,7 +129,7 @@ function coachSpecification(){
 
 checkandUpdate(state){
     console.log('state',state)
-    if(state.isinternal == true)
+    if(state.is_internal == true)
     {
         state.message=''
         console.log('this state can not have the monitoring message')
@@ -142,10 +142,10 @@ checkandUpdate(state){
 
 showandSetParameters(index){
     //setting the parameters
-    if (this.baseLevel.states[index].isinternal == 'true')
-        this.baseLevel.states[index].isinternal = true
+    if (this.baseLevel.states[index].is_internal == 'true')
+        this.baseLevel.states[index].is_internal = true
     else
-        this.baseLevel.states[index].isinternal = false
+        this.baseLevel.states[index].is_internal = false
 },
 
 saveRole(){
