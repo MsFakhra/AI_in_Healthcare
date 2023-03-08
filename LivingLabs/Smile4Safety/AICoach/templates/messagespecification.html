@@ -6,7 +6,7 @@
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 </script>
 
-<form id="updateMModel" method="post" action="{% url 'supportspecificationupdated' %}"> {% csrf_token %}
+<form id="updateMModel" method="post" action="{% url 'modelspecificationupdated' %}"> {% csrf_token %}
     <div x-data="coachSpecification()" x-init="loadModel()" class="container py-5">
 
     <table class="tblstyle">
@@ -41,7 +41,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     </input>
                                 </div>
                             </td>
-                            <!-- data for the Coach -->
+
                             <td>
                                 <table>
                                     <tr>

@@ -41,24 +41,38 @@ def generateStateInformation(data):
                 for info in model_input:
                     element = info
                     state = element['state']
+                    index = state['id']
                     id = state['id']  # X1
+                    if id == 'X20':
+                        x = 10
+
                     name = state['name']
                     in_connections = state['in_connection']  # return list of dictionaries
                     connection_weights = state['connection_weights']
 
-                    speed = float(state['speed'])
+                    if not (is_valid_float(state['speed'])):
+                        speed = state['speed']
+                    else:
+                        speed = float(state['speed'])
+
+
                     init_value = float(state['init_value'])
                     last_value = state['values'][-1]
                     combination_functions = state['combination_functions']
+                    is_internal = state['is_internal']
 
                     index = extractId(id)  # returns id as 1
-                    incomingconnections = extractIncomingConnections(in_connections)  # return incomingconnections
-                    connectionweight = extractIncomingConnections(connection_weights, True)  # returns connection weights
+                    incomingconnections = extractIncomingConnections(state,in_connections)  # return incomingconnections
+                    connectionweight = extractIncomingConnectionWeights(state,connection_weights, in_connections)  # returns connection weights
                     cfv_structure = extractCFVStructure(combination_functions)
 
-                    complete = state['complete']
+                    # if state is from other levels make them complete
+                    if key == 'first_level' or key == 'second_level':
+                        complete = True
+                    else:
+                        complete = state['complete']
                     #initial_state = state['initial_state']
-                    state = State(id, index, name, incomingconnections, connectionweight, speed, init_value, cfv_structure,level,complete)#,initial_state)
+                    state = State(id, index, name, incomingconnections, connectionweight, speed, init_value, cfv_structure,level,complete,is_internal)#,initial_state)
                     statematrix.append(state)
 
 
@@ -81,30 +95,36 @@ def generateSimulationResults(statematrix):
     cur_time_stamp = datetime.now()
     for state in statematrix:  # j for all states in the state matrix
         index = state.index
-        if index == 5:
+        #print('state index,name',index,state.name,state.complete)
+        if index == 23:
             x = 10
         speed = state.speed
         connection_weights = state.connection_weights
         cfv_structure = state.cfv_structure
         stateinput = []
         incomingconnections = state.incomingconnections
-        completionstatus = True
 
+        completionstatus = state.complete
+        inc_completed = []
         # updating the state connections with values the 'b' matrix
         for connection in incomingconnections:
             #print('connection',connection)
             if not (is_valid_float(connection)):
                 statevalue = getStateOutputValues(connection, statematrix)#get the last value
-                ind_completionstatus = getIncomingCompletionStatus(connection,statematrix)
+                inc_completionstatus = getIncomingCompletionStatus(connection,statematrix,state)
+                inc_completed.append(inc_completionstatus)
                 #print('completion status ', ind_completionstatus)
+                #if(ind_completionstatus == True)
+                #if((inc_completionstatus == True and completionstatus == False) or (ind_completionstatus == False)):
 
-                if(ind_completionstatus == False):
-                    completionstatus = ind_completionstatus
-                #statevalue = getStateOutputValues(connection, curriteration, statematrix)
                 stateinput.append(statevalue)
             else:
                 stateinput.append(0)
         stateinput = np.array(stateinput)
+        status = getCompletionStatus(inc_completed)
+        if (status != 'Unknown'):
+            completionstatus = status
+
 
         # updating the speed s matrix
         """ if not(isnan(msa(j, 1)))
@@ -202,11 +222,22 @@ def generateSimulationResults(statematrix):
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
         state.setCompletionStatus(completionstatus)
-
+        if index == 23 or index == 15:  # id
+            print('state index,name', index, state.name, state.complete)
         x = 10
+    x = 10
 
 
 ## support functions
+
+def getCompletionStatus(completionstatusarr):
+    if len(completionstatusarr) > 0:
+        if False in completionstatusarr:
+            return False
+        else:
+            return True
+    else:
+        return 'Unknown'
 
 def is_valid_float(element: str) -> bool:
     try:
@@ -225,12 +256,16 @@ def getStateOutputValues(connection, statematrix):
     return outputvalue
 
 
-def getIncomingCompletionStatus(connection, statematrix):
+def getIncomingCompletionStatus(connection, statematrix,curstate):
+
     index = int(re.findall(r'\d+', connection)[0])
     state = statematrix[index - 1]
     completionstatus = state.complete
     return completionstatus
 
+
+def findAdaptiveSpeed(speed):
+    return re.findall(r'\d+', speed)[0]
 def findAdaptiveState(astate):
     return re.findall(r'\d+', astate)[0]
 
@@ -239,20 +274,45 @@ def findAdaptiveState(astate):
 def extractId(id):
     id_array = re.findall(r'\d+', id)
     return int(id_array[0])
-
-def extractIncomingConnections(in_connections,connection_weights = False):
+def extractValue(value):
+    value = re.findall(r'[-+]?(?:\d*\.*\d+)', value)
+    return float(value[0])
+def extractIncomingConnectionWeights(state,connection_weights, in_connections):
     # input: list of dictionaries
     # returns matrix that constains incoming states
-
+    # avoid self reference
+    state_id = extractId(state['id'])
+    if (state_id == 9):
+        x = 10
+    in_connection_list = []
+    for idx,item in enumerate(in_connections):
+        value = item['value']
+        connection_id = extractId(value)
+        if (connection_id != state_id):
+            value = connection_weights[idx]['value']
+            if (value != ''):
+                value = extractValue(value)
+            else:
+                value = 0.0
+            in_connection_list.append(value)
+    return in_connection_list
+def extractIncomingConnections(state,in_connections):
+    # input: list of dictionaries
+    # returns matrix that constains incoming states
+    # avoid self reference
+    state_id = extractId(state['id'])
+    if(state_id == 9):
+        x = 10
     in_connection_list = []
     for item in in_connections:
         value = item['value']
-        if(connection_weights == True):
-            if(value != ''):
-                value = float(value)
-            else:
+        connection_id = extractId(value)
+        if(connection_id != state_id):
+             if(value != ''):
+                value = value #extractId(value)
+             else:
                 value = 0
-        in_connection_list.append(value)
+             in_connection_list.append(value)
     return in_connection_list
 def extractCFVStructure(combination_functions):
     #input: list
@@ -262,7 +322,9 @@ def extractCFVStructure(combination_functions):
         id = int(combinationfunction['id'])
         name = combinationfunction['name']
         impactweight = float(combinationfunction['function_weight'])
-        numberOfParams = int(combinationfunction['number_of_possible_params'])
+        #print('PARAMS', combinationfunction['number_of_possible_params'], type(combinationfunction['number_of_possible_params']))
+        #numberOfParams = int(combinationfunction['number_of_possible_params'])
+        numberOfParams = combinationfunction['number_of_possible_params']
         parameters = combinationfunction['parameters']
         params = []
         for parameter in parameters:
@@ -318,7 +380,7 @@ class CombiationFunctionStructure:
         self.impactweight = impactweight
 
 class State:
-    def __init__(self, id, index, name, b, cw,s,init_value,cfv_structure,level,complete):#,initial_state):
+    def __init__(self, id, index, name, b, cw,s,init_value,cfv_structure,level,complete,is_internal):#,initial_state):
         self.index = index
         self.id = id
         self.name = name  # string
@@ -333,6 +395,7 @@ class State:
         self.level = level
         self.complete = complete
         #self.initial_state = initial_state
+        self.is_internal = is_internal
 
 
     def isInitialState(self):
@@ -1211,7 +1274,7 @@ def computeCFValue(noOfcf, parameters, values, curriteration, dt):
         49: (maxhebb, (parameters, values)),
         50: (maxmin2, (parameters, values)),
         51: (maxmin3, (parameters, values)),
-        52: (randsteponce, (parameters, values)),
+        52: (randsteponce, (parameters, values,curriteration,dt)),
         53: (randstepmod, (parameters, values)),
         54: (compdiff, (parameters, values)),
         55: (randstepmodopp, (parameters, values,curriteration,dt)),

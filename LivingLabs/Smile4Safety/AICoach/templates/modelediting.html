@@ -10,8 +10,8 @@
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 </script>
 
-<form id="createMModel" method="post" action="{% url 'messagespecification' %}" onsubmit="return false"> {% csrf_token %}
-<div x-data="modelSpecification()" class="container py-5">
+<form id="createMModel" method="post" action="{% url 'supportspecificationupdated' %}" onsubmit="return false"> {% csrf_token %}
+<div x-data="modelSpecification()" x-init="checkandgenerateModel()" class="container py-5">
     <table>
         <tr>
             <td>
@@ -19,12 +19,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             </td>
             <td>
                 <input x-model="name" type="text" class="form-control" id="name" required>
-            </td>
-        </tr>
-        <tr>
-            <td></td>
-            <td>
-                <button x-on:click="checkandgenerateModel()" class="form-control btn btn-primary">Generate Model</button>
             </td>
         </tr>
     </table>
@@ -70,7 +64,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     <!-- type of state-->
                                     <td>
                                         <select class="form-select" x-model="bstate.is_internal">
-                                            <option value="true" selected> Internal State </option>
+                                            <option value="true"> Internal State </option>
                                             <option value="false" > Actionable / Observation State </option>
                                         </select>
                                     </td>
@@ -131,6 +125,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                                 <select class="form-select" x-model="fstate.is_internal">
                                                     <option value="true"> Internal State </option>
                                                     <option value="false" > Actionable / Observation State </option>
+
                                                 </select>
                                             </td>
                                             <!-- incoming connections-->
@@ -442,9 +437,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                                <tr>
                                                 <td>
                                                     <select class="form-select" x-model="func.id" x-on:change="showandSetBParameter(bindex,findex)">
-                                                        <option value="0" hidden selected> -- select an option -- </option>
+                                                        <option value="func.id" x-text="func.full_name" selected></option>
                                                         <template x-for = "cof in combinationfuncs">
-                                                            <option value="cof.id" x-text = "cof.fullname"></option>
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
                                                         </template>
                                                     </select>
                                                 </td>
@@ -499,11 +494,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     <template x-for="(ffunc,ffindex) in fstate.combination_functions" :key="ffindex">
                                         <table>
                                             <tr>
+                                                <td><span x-text="ffunc.full_name"></span></td>
                                                 <td>
                                                     <select class="form-select" x-model="ffunc.id" x-on:change="showandSetFLParameter(findex,ffindex)">
-                                                        <option value="0" hidden selected> -- select an option -- </option>
+                                                        <option value="ffunc.id" x-text="ffunc.full_name" selected></option>
                                                         <template x-for = "cof in combinationfuncs">
-                                                            <option value="cof.id" x-text = "cof.fullname"></option>
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
                                                         </template>
                                                     </select>
                                                 </td>
@@ -564,9 +560,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                             <tr>
                                                 <td>
                                                     <select class="form-select" x-model="sfunc.id" x-on:change="showandSetSLParameter(sindex,sfindex)">
-                                                        <option value="0" hidden selected> -- select an option -- </option>
+                                                        <option value="sfunc.id" x-text="sfunc.full_name" selected></option>
                                                         <template x-for = "cof in combinationfuncs">
-                                                            <option value="cof.id" x-text = "cof.fullname"></option>
+                                                            <option :value="cof.id" x-text = "cof.fullname"></option>
                                                         </template>
                                                     </select>
                                                 </td>
@@ -672,86 +668,41 @@ F: combination function structure:
 
 checkandgenerateModel(){
     this.showBaseModel = true
-
-    //combination functions initialization
     json_data = JSON.parse("{{data|escapejs}}")
-    this.combinationfuncs = []
+    this.id = json_data.id
+    this.name = json_data.name
+    specification = json_data.specification
+    console.log('model recieved from db', specification)
 
-    for(var i in json_data){
+    this.baseLevel = specification[0].states
+    this.firstOrderLevel = specification[1].states
+    this.secondOrderLevel = specification[2].states
+
+    layerObject0 = { layer: 'Base Model',
+                     states:this.baseLevel,
+                    }
+
+    layerObject1 = { layer: 'First-Order Adaptation',
+                     states:this.firstOrderLevel,
+                    }
+
+    layerObject2 = { layer: 'Second-Order Adaptation',
+                     states:this.secondOrderLevel,
+                    }
+
+
+    this.stateMatrix.push(layerObject0)
+    this.stateMatrix.push(layerObject1)
+    this.stateMatrix.push(layerObject2)
+
+    this.combinationfuncs = json_data.combinationFunctions
+    console.log('combinationfuncs', json_data.combinationFunctions)
+    /*for(var i in json_data.combinationFunctions){
         this.combinationfuncs.push(json_data[i])
-    }
+    }*/
 
-    console.log('check if already there is a model')
-    // check if already there is a model with the same name
-    model = 'false'
-     if (model == 'false')
-     {
-            //matrices
-            let existingStates = this.baseLevel.length
-            let diff = existingStates - this.numberOfStates
-
-
-            if (this.numberOfStates <= existingStates) {
-               this.baseLevel.splice(existingStates - diff, diff)
-            }
-            else
-            {
-
-               for (let loopindex = 0; loopindex < this.numberOfStates - existingStates; loopindex++)
-               {
-                   index = existingStates + loopindex + 1
-                   cfuncobjarray = {
-                       id:'1',
-                      name:'eucl',
-                      full_name:'eucledian',
-                      function_weight:'1.0',
-                      number_of_possible_params:'2',
-                      parameters:[{name:'order', value:''},{name:'scaling factor', value:''}],
-                      show_params:false
-                      }
-
-                      this.baseLevel.push({show_param_btn:false, id: 'X'+index, name: '',user_name: '', in_connection: [{value: ''}], connection_weights:[{value: ''}], speed:0.0,init_value:0.0, combination_functions:[cfuncobjarray]
-                      , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:false,  values:[{cur_value:0.0, time_stamp:0}]
-                        })
-
-               }
-
-            } //else
-
-            layerObject = { layer: 'Base Model',
-                            states:this.baseLevel,
-            }
-            this.stateMatrix.push(layerObject)
-
-            //reset other layers
-            len = this.firstOrderLevel.length
-            while(len > 0){
-                this.firstOrderLevel.splice(-1,1)
-                len--
-            }
-
-            len = this.secondOrderLevel.length
-            while(len > 0){
-                this.secondOrderLevel.splice(-1,1)
-                len--
-            }
-            this.layer1 = false
-            this.showFirstButton = true
-            this.layer2 = false
-            this.showSecondButton = false
-
-            //update stateMatrix
-            layerObject = { layer: 'First-Order Adaptation',
-                            states:this.firstOrderLevel,
-            }
-            this.stateMatrix.push(layerObject)
-
-            layerObject = { layer: 'Second-Order Adaptation',
-                            states:this.secondOrderLevel,
-            }
-            this.stateMatrix.push(layerObject)
-
-    } //if (model == 'false')
+    this.layer1 = true
+    this.layer2 = true
 
 
 
@@ -766,15 +717,16 @@ showandSetBParameter(bindex,findex)
     this.baseLevel[bindex].show_param_btn = true
     this.show_params=true
     id = this.baseLevel[bindex].combination_functions[findex].id
-    console.log(id)
+    console.log('name',this.baseLevel[bindex].combination_functions[findex].name)
 
     //searching function from json file
     for(let i = 0; i < this.combinationfuncs.length; i++){
         if (id == this.combinationfuncs[i].id){
             this.baseLevel[bindex].combination_functions[findex].name = this.combinationfuncs[i].name
             this.baseLevel[bindex].combination_functions[findex].full_name= this.combinationfuncs[i].fullname
-            this.baseLevel[bindex].combination_functions[findex].number_of_possible_params= this.combinationfuncs[i].number_of_possible_params
+            this.baseLevel[bindex].combination_functions[findex].number_of_possible_params= this.combinationfuncs[i].numberOfPossibleParams
             parameters = this.combinationfuncs[i].paramNames.split("&")
+
 
             adjustedparams = []
             for(let pi= 0; pi< parameters.length;pi++)
@@ -784,7 +736,19 @@ showandSetBParameter(bindex,findex)
                 adjustedparams.push({name:paramname, value:paramval})
 
             }
-            this.baseLevel[bindex].combination_functions[findex].parameters = adjustedparams
+
+
+            cfuncobjarray = {
+                    id:id,
+                    name:this.combinationfuncs[i].name,
+                    full_name:this.baseLevel[bindex].combination_functions[findex].full_name,
+                    function_weight:this.baseLevel[bindex].combination_functions[findex].function_weight,
+                    number_of_possible_params:this.combinationfuncs[i].numberOfPossibleParams,
+                    parameters:adjustedparams,
+                    show_params:false
+                }
+             console.log(this.combinationfuncs[i], cfuncobjarray,this.baseLevel[bindex])
+            this.baseLevel[bindex].combination_functions[findex] = cfuncobjarray
 
         }
     }
@@ -970,7 +934,7 @@ showandSetFLParameter(sindex,findex)
     for(let i = 0; i < this.combinationfuncs.length; i++){
         if (id == this.combinationfuncs[i].id){
             this.firstOrderLevel[sindex].combination_functions[findex].name = this.combinationfuncs[i].name
-            this.firstOrderLevel[sindex].combination_functions[findex].full_name= this.combinationfuncs[i].fullname
+            this.firstOrderLevel[sindex].combination_functions[findex].full_name= this.combinationfuncs[i].full_name
             this.firstOrderLevel[sindex].combination_functions[findex].number_of_possible_params= this.combinationfuncs[i].number_of_possible_params
             parameters = this.combinationfuncs[i].paramNames.split("&")
 
@@ -982,7 +946,20 @@ showandSetFLParameter(sindex,findex)
                 adjustedparams.push({name:paramname, value:paramval})
 
             }
-            this.firstOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
+
+            cfuncobjarray = {
+                    id:id,
+                    name:this.combinationfuncs[i].name,
+                    full_name:this.firstOrderLevel[sindex].combination_functions[findex].full_name,
+                    function_weight:this.firstOrderLevel[sindex].combination_functions[findex].function_weight,
+                    number_of_possible_params:this.combinationfuncs[i].numberOfPossibleParams,
+                    parameters:adjustedparams,
+                    show_params:false
+                }
+            //console.log(this.combinationfuncs[i], cfuncobjarray,this.baseLevel[bindex])
+            this.firstOrderLevel[sindex].combination_functions[findex] = cfuncobjarray
+
+            //this.firstOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
 
         }
     }
@@ -1164,7 +1141,7 @@ showandSetSLParameter(sindex,findex){
     for(let i = 0; i < this.combinationfuncs.length; i++){
         if (id == this.combinationfuncs[i].id){
             this.secondOrderLevel[sindex].combination_functions[findex].name = this.combinationfuncs[i].name
-            this.secondOrderLevel[sindex].combination_functions[findex].full_name= this.combinationfuncs[i].full_name
+            this.secondOrderLevel[sindex].combination_functions[findex].full_name= this.combinationfuncs[i].fullname
             this.secondOrderLevel[sindex].combination_functions[findex].number_of_possible_params= this.combinationfuncs[i].number_of_possible_params
             parameters = this.combinationfuncs[i].paramNames.split("&")
 
@@ -1176,7 +1153,20 @@ showandSetSLParameter(sindex,findex){
                 adjustedparams.push({name:paramname, value:paramval})
 
             }
-            this.secondOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
+
+             cfuncobjarray = {
+                    id:id,
+                    name:this.combinationfuncs[i].name,
+                    full_name:this.secondOrderLevel[sindex].combination_functions[findex].full_name,
+                    function_weight:this.secondOrderLevel[sindex].combination_functions[findex].function_weight,
+                    number_of_possible_params:this.combinationfuncs[i].numberOfPossibleParams,
+                    parameters:adjustedparams,
+                    show_params:false
+                }
+            //console.log(this.combinationfuncs[i], cfuncobjarray,this.baseLevel[bindex])
+            this.secondOrderLevel[sindex].combination_functions[findex] = cfuncobjarray
+
+            //this.secondOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
 
         }
     }
@@ -1306,8 +1296,9 @@ save() {
 
      axios({
         method: 'post',
-        url: '/modelspecification/',
+        url: '/specificationedited/',
         data: {
+            id: this.id,
             name: this.name,
             stateMatrix: this.stateMatrix//,
             //baseLevel: this.baseLevel,
@@ -1330,6 +1321,7 @@ save() {
         }, (error) => {
             console.log(error.response.data);
         });
+        console.log('Success')
 }  //save
 
  } //return

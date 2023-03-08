@@ -12,7 +12,9 @@ from pathlib import Path
 from transformers import RobertaTokenizer, RobertaForSequenceClassification
 from transformers import pipeline
 
-#for english
+combinationFunctions = []
+
+#for english sentiment analysis
 model_name = "siebert/sentiment-roberta-large-english"
 #use this to create pipeline and use model (takes time)
 #sentiment_analysis = pipeline("sentiment-analysis",model= model_name)
@@ -53,6 +55,7 @@ def main(request):
     #main function
     #return modelcreation(request)
     #return messagespecification(request)
+    #return modelediting(request)
     return monitoring(request)
 
     #return createmodel(request)
@@ -67,9 +70,9 @@ def monitoring(request):
         This renders the model with actionable and observation based states.
         The states which are actionable have a message associated at the successful completion of the action.
     '''
-    #fetches the last model
+    #fetches the last model monitoring_state
     modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-    #modelobj = ModelSpecification.objects.get(model_id=10)
+    #modelobj = ModelSpecification.objects.get(model_id=15)
 
 
     specs = modelobj.model_specification
@@ -82,8 +85,8 @@ def monitoring(request):
     }
 
     dataJSON = json.dumps(dict_model)  # dict to str
-
-    return render(request, 'monitoring.html', {'data': dataJSON})  # 100% working with one direction tested
+    #return render(request, 'testfile.html', {'data': dataJSON})
+    return render(request, 'monitoring.html', {'data': dataJSON})
 
 def modelcreation(request):
     '''This function shows the interface to create the model.
@@ -150,6 +153,75 @@ def messagespecification(request):
     dataJSON = json.dumps(dict_model)  # dict to str
 
     return render(request, 'messagespecification.html', {'data': dataJSON})
+
+def modelediting(request):
+    #This method shows the complete model
+    cwd = Path.cwd()
+    filename = str(cwd) + "\\AICoach\\templates\\combinationfunctionlibrary.json"
+    combinationFunctions = []
+    with open(filename) as json_file:
+        combinationFunctions = json.load(json_file)
+
+    #loading the model
+    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
+    #modelobj = ModelSpecification.objects.get(model_id=10)
+
+    specs = modelobj.model_specification
+
+    jsonData = json.loads(specs)
+    dict_model = {
+        'id': modelobj.model_id,
+        'name': modelobj.model_name,
+        'specification': jsonData,
+        'combinationFunctions':combinationFunctions
+    }
+
+    dataJSON = json.dumps(dict_model)  # dict to str
+
+    return render(request, 'modelediting.html', {'data': dataJSON})
+
+def specificationedited(request):
+    # This method edits the complete model
+    if request.method == 'POST':
+        data = request.body  # retrieving model in bytes
+
+        # Decode UTF-8 bytes to Unicode, and convert single quotes
+        # to double quotes to make it valid JSON
+        str_model = data.decode('utf8').replace("'", '"')  # returns byte data as string
+        dict_model = json.loads(str_model)  # dict
+
+        id = dict_model["id"]
+        name = dict_model["name"]
+        modelobj = ModelSpecification.objects.get(model_id=id)
+
+        specs = dict_model["stateMatrix"]
+
+        modelobj.model_specification = json.dumps(specs)
+        modelobj.save()
+
+        # validate and database save
+
+        return JsonResponse({"status": 'success to editting'})
+
+def modelspecificationupdated(request):
+    if request.method == 'POST':
+        data = request.body  # retrieving model in bytes
+
+        # Decode UTF-8 bytes to Unicode, and convert single quotes
+        # to double quotes to make it valid JSON
+        str_model = data.decode('utf8').replace("'", '"')  # returns byte data as string
+        dict_model = json.loads(str_model)  # dict
+
+        id = dict_model["id"]
+        name = dict_model["name"]
+        modelobj = ModelSpecification.objects.get(model_id=id)
+
+        specs = dict_model["stateMatrix"]
+
+        modelobj.model_specification = json.dumps(specs)
+        modelobj.save()
+
+        return JsonResponse({"status": 'success to update'})
 
 def messagespecificationupdated(request):
     '''This function is replica of updatespecification algorithm is
@@ -229,9 +301,9 @@ def analyzesentiments(list_model):
 def getstatestatus(request):
     #REF: https://stackoverflow.com/questions/43708387/django-display-json-or-httpresponse-in-template
     data = request.session['progress']
-    print('Views: getstatestatus === sent data')
+    #print('Views: getstatestatus === sent data')
     #print(type(data))
-    print(data)
+    #print(data)
 
 
     return JsonResponse(data,safe = False)
@@ -262,11 +334,14 @@ def updateProgressElement(progress_input,state):
             #Updating from elements
             id = prg['from']['id']
             if (state.getid() == id):
+                print('state.getid()', state.getid(),state.name,state.complete)
                 prg['from']['complete'] = state.complete
                 outputinfo = state.getLastOutput()
                 cur_val = outputinfo.getValue()
                 time_stamp = outputinfo.getTimeStamp()
                 prg['from']['values'].append({'curvalue':cur_val , 'time_stamp':time_stamp})
+                #print('from state',prg['from'])
+
 
 def setstatestatus(request):
     # This function is used to set the status of the states
@@ -278,14 +353,16 @@ def setstatestatus(request):
         model_input_sample = json.loads(data)  # returns dictionary
         model_input = json.loads(data)  # returns dictionary
 
-        print("=======Views:Model Input =========================")
-        print(model_input)
+        #print("=======Views:Model Input =========================")
+        #print(model_input)
 
         #TODO: simulation results have statematrix
         # convert them into jsonData = json.dumps(simulation_results)
 
         for state in statematrix:
             level = state.getLevel()
+            if state.id == 45:
+                x = 10
             if level == 0:
                 updateModelSpecification(model_input['base_level'],state)
                 updateProgressElement(model_input['last_progress'],state)
@@ -298,13 +375,13 @@ def setstatestatus(request):
 
         #model_output = model_input_sample
         model_output = model_input
-        print("=======Model Output =========================")
+        #print("=======Model Output =========================")
         #print(model_output)
 
         jsonData = json.dumps(model_output)  # returns string
 
         request.session['progress'] = jsonData
-        print(jsonData)
+        #print(jsonData)
 
 
 
