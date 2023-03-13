@@ -40,8 +40,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                 <td>
                                     <div x-show="true"> <!--"!bstate.is_internal"-->
                                         <button id="bstate.id" x-text="bstate.id+':'+bstate.name"  type="button"
-                                            @click="console.log('WORKING ON CHANGING THE COLOR AND DATA');
-                                                recordFromAction(cur_prg);"
+                                            @click="recordFromAction(cur_prg);"
                                             class="button button4"
                                             :class="{ 'bg-yellow-300': (bstate.monitoringstate && !bstate.complete),
                                                       'bg-green-500':  (bstate.monitoringstate && bstate.complete),
@@ -125,11 +124,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 //1.a. set the state as completed
                 // preliminary checks
                 //1.a.a. if the state is already completed
+
                 if(from_elem.complete)
                 {
                     console.log('state is already completed/observed')
                     return
                 }
+
                 //1.a.b. if all incoming connections are completed then make it true and update all matrices accordingly
 
                 if(from_elem.initial_state)
@@ -145,7 +146,35 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 }
                 else
                 {
-                    //check the incoming connections status on the back end only.
+                    //WORKING HERE
+
+                    //if all incoming connections are completed then make it true
+                    //console.log('state is not initial state', from_elem)
+                    iidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === from_elem.id )
+                    //console.log('iidx', iidx)
+                    if(iidx > -1){
+                        causal_impact = this.checkCausalImpact(iidx)
+                        //console.log('causal_impact', causal_impact)
+                        if (causal_impact)
+                        {
+                            //update the incomingNetwork and the completeProgress elements
+                            from_elem.complete = causal_impact
+                            this.incomingBaseLevelNetwork[iidx].state.complete = causal_impact
+                            prgidx = this.completeProgressOfNetwork[this.iteration].progress.findIndex(e => e.from.id === from_elem.id )
+                            //console.log('prgidx', prgidx)
+                            if(prgidx > -1)
+                            {
+                                //console.log('elem', this.completeProgressOfNetwork[this.iteration].progress[prgidx].from)
+                                this.completeProgressOfNetwork[this.iteration].progress[prgidx].from.complete = true
+                                cur_prg.from.complete = true
+                            }
+                        }
+                        else
+                        {
+                            console.log('causal impact NOT found')
+                        }
+
+                    }
                 }
 
 
@@ -156,8 +185,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 this.getStatusUpdate()
 
                 this.goTimer = true
-                this.showNextProgressElement()  //delete from here afterwards this is for start timer
-
             },
 
             //////////////////////////supporting methods
@@ -170,10 +197,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         if (this.goTimer == true) {
                             idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.complete == false);
                             if(idx > -1) {
+                                console.log('killing timer');
                                 this.gotTimer = false;
                             }
                             else{
-                                //this.showNextProgressElement()
+                                this.showNextProgressElement()
                             }
 
                         }
@@ -190,26 +218,33 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 //cur_prg = this.curProgress[this.iteration].cur_progress
                 rem_prg = this.remProgress[this.iteration].rem_progress
 
+                //console.log('showNextElement',rem_prg);
                 //1. update the current progress
 
                 //1.a. get incoming connection information
+                if(rem_progress.length == 0)
+                {
+                    this.gotTimer = false;
+                    return
+                }
 
                 first_rem_element = this.remProgress[this.iteration].rem_progress[0]
 
-                console.log('Remaining and Incoming',this.remProgress[this.iteration], first_rem_element,this.incomingBaseLevelNetwork)
+                //console.log('Remaining and Incoming',this.remProgress[this.iteration], first_rem_element,this.incomingBaseLevelNetwork)
                 idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === first_rem_element.from.id )
+                console.log('idx',idx)
                 if (idx > -1)
                 {
                     causal_impact = this.checkCausalImpact(idx)
                     if (causal_impact)
                     {
+
                         //1.a.a. update this element into curProgress and remove it from remProgress
                         this.curProgress[this.iteration].cur_progress.push(first_rem_element)
-                        this.remProgress[this.iteration].rem_progress.splice(0, 1)  // remove one element only
-                        console.log('cur_progress',first_rem_element, this.curProgress[this.iteration].cur_progress)
 
-
-                    }
+                        this.remProgress[this.iteration].rem_progress.splice(0, 1)  // remove first element only
+                        console.log('cur_progress',first_rem_element, causal_impact, this.curProgress[this.iteration].cur_progress,this.remProgress[this.iteration].rem_progress)
+                   }
                 }
             },
 
@@ -230,9 +265,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         //save the status
                         state_status = this.curProgress[this.iteration].cur_progress[pidx]
                         cur_status.push({iscomplete: state.complete})
+                        console.log("State",this.curProgress[this.iteration].cur_progress[pidx])
                     }
                 }
-
+                //console.log("status array",cur_status)
                 if(cur_status.length > 0)
                 {
                     idx = cur_status.findIndex(e => e.iscomplete == false)
@@ -243,7 +279,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 }
 
-                console.log('final_status',final_status)
+                //console.log('final_status',final_status,index)
 
                 return final_status
 
@@ -260,7 +296,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     response = await axios.get(data_url);
                     //console.log('Before updation - data recieved',response.data)
                     rec_model_info = JSON.parse(response.data)    // model info received similar to the sent
-                    //console.log('Before updation - model information recieved',rec_model_info)
+                    console.log('Before updation - model information recieved',rec_model_info)
 
                     r_last_progress = rec_model_info.last_progress[this.iteration]
                     base_level = rec_model_info.base_level
@@ -283,32 +319,37 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     {
                         from_elem = r_last_progress['progress'][i].from
                         //console.log('from_elem',from_elem)
-                        //updation of status in completeProgressOfNetwork
+                        //updation of status in currentProgress
                         cur_prg[i].from.complete = from_elem.complete
 
                         if(from_elem.complete)
                         {
-                            //if it is not already in current progress then append it in curProgress
+                            //console.log('from_elem',from_elem)
+                            //TO-DO: this.updateCurrentProgress(from_elem) remove this if this doesnt work
 
+                            //if it is not already in current progress then append it in curProgress
                             idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
-                            //console.log('idx',idx, this.curProgress[this.iteration].cur_progress[idx])
+                            //console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
                             if(idx < 0)
                             {
                                 is_internal = from_elem.is_internal
                                 //console.log(" returned from server: is internal",is_internal,from_elem)
                                 //if(!is_internal)
+
                                     this.curProgress[this.iteration].cur_progress.push(cur_prg[i])
                             }
 
                             //if it is in current progress then remove it from remaining progress
+
                             ridx = this.remProgress[this.iteration].rem_progress.findIndex(e => e.from.id == from_elem.id)
+                            //console.log('REM idx',ridx, this.remProgress[this.iteration].rem_progress)
+
                             if(ridx > -1)
                             {
-                               elem = this.remProgress[this.iteration].rem_progress[ridx]
-                               this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
-                               //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
+                                elem = this.remProgress[this.iteration].rem_progress[ridx]
+                                this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
+                                //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
                             }
-
                         }
 
                         //TODO: update fout status if there are to elemets in parallel
@@ -332,6 +373,35 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 }
             },
 
+            updateCurrentProgress(from_elem){
+                    //if it is not already in current progress then append it in curProgress
+                    idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
+                    //console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
+                    if(idx < 0)
+                    {
+                        is_internal = from_elem.is_internal
+                        //console.log(" returned from server: is internal",is_internal,from_elem)
+                        //if(!is_internal)
+
+                            this.curProgress[this.iteration].cur_progress.push(cur_prg[i])
+                    }
+
+                    //if it is in current progress then remove it from remaining progress
+
+                    ridx = this.remProgress[this.iteration].rem_progress.findIndex(e => e.from.id == from_elem.id)
+                    //console.log('REM idx',ridx, this.remProgress[this.iteration].rem_progress)
+
+                    if(ridx > -1)
+                    {
+                        elem = this.remProgress[this.iteration].rem_progress[ridx]
+                        this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
+                        //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
+                    }
+
+
+
+            },
+
             updateStateValues(curstate,level,time_stamp){
                 /*This function updates the states values of the connections
                     input: state that has been updated
@@ -352,7 +422,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     incomingstate = arr[i].state
                     values = incomingstate.values
                     if(incomingstate.id == curstate.id && curstate.complete)
-                        cur_value = 1//state.init_value;
+                        cur_value = 1//state.init_value; //1
                     else
                         cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
 
@@ -360,6 +430,34 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     value = {cur_value:cur_value, time_stamp:time_stamp}
                     values.push(value)
                 }
+            },
+
+            updateCompleteProgress(curstate,time_stamp){
+                  /*This function updates the states values of the connections
+                    input: state that has been updated
+                    level:0/1/2
+                    time_stamp: current time_stamp
+                    if curstate is found it is initialized by certain value; otherwise last value is placed
+                */
+
+                //console.log('updateCompleteProgress - curstate', curstate, this.completeProgressOfNetwork[this.iteration].progress)
+
+                to_be_updated_idx = this.completeProgressOfNetwork[this.iteration].progress.findIndex(e => e.from.id == curstate.id)
+                updated_idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == curstate.id)
+                if(to_be_updated_idx > -1){
+                    //console.log('to_be_updated_idx', this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx])
+                    if(updated_idx > -1)
+                    {
+                        //console.log('updated_idx', updated_idx,this.incomingBaseLevelNetwork[updated_idx])
+                        this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx].from.complete = this.incomingBaseLevelNetwork[updated_idx].state.complete
+                        //console.log('updated', this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx],this.incomingBaseLevelNetwork[updated_idx])
+                    }
+
+                }
+
+
+
+
             },
             sendStatusUpdate(state){
             /* This function sends the data to django view to start simulation
@@ -372,11 +470,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 this.updateStateValues(state,1,time_stamp) //set the values for state at this.firstOrderLevelNetwork
                 this.updateStateValues(state,2,time_stamp) //set the values for state at this.firstOrderLevelNetwork
 
+                this.updateCompleteProgress(state,time_stamp) //update the complete progress
+
+
                 console.log('Before sendStatusUpdate')
                 //console.log('base level network', this.incomingBaseLevelNetwork)
                 //console.log('first level network', this.firstOrderLevelNetwork)
                 //console.log('second level network', this.secondOrderLevelNetwork)
-                console.log('last_progress in complete progress', this.completeProgressOfNetwork)
+                //console.log('last_progress in complete progress', this.completeProgressOfNetwork)
                 out_data = {
                     id: this.id,
                     name: this.name,
@@ -474,7 +575,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     else
                     {
                         //check if this is the last entry then show it as completed
-                        console.log('getToElementsofaState: from_state', from_state)
+                        //console.log('getToElementsofaState: from_state', from_state)
                         if(from_state.id == '')
                         {
 

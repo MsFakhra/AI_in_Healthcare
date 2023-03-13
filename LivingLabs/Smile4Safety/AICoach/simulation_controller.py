@@ -43,7 +43,7 @@ def generateStateInformation(data):
                     state = element['state']
                     index = state['id']
                     id = state['id']  # X1
-                    if id == 'X20':
+                    if id == 'X5':
                         x = 10
 
                     name = state['name']
@@ -96,7 +96,7 @@ def generateSimulationResults(statematrix):
     for state in statematrix:  # j for all states in the state matrix
         index = state.index
         #print('state index,name',index,state.name,state.complete)
-        if index == 23:
+        if state.index == 6:
             x = 10
         speed = state.speed
         connection_weights = state.connection_weights
@@ -113,17 +113,16 @@ def generateSimulationResults(statematrix):
                 statevalue = getStateOutputValues(connection, statematrix)#get the last value
                 inc_completionstatus = getIncomingCompletionStatus(connection,statematrix,state)
                 inc_completed.append(inc_completionstatus)
-                #print('completion status ', ind_completionstatus)
-                #if(ind_completionstatus == True)
-                #if((inc_completionstatus == True and completionstatus == False) or (ind_completionstatus == False)):
+                #print('completion status ', connection, inc_completionstatus)
 
                 stateinput.append(statevalue)
             else:
                 stateinput.append(0)
         stateinput = np.array(stateinput)
-        status = getCompletionStatus(inc_completed)
-        if (status != 'Unknown'):
-            completionstatus = status
+        if(completionstatus != True):
+            status = getCompletionStatus(inc_completed)
+            if (status != 'Unknown'):
+                completionstatus = status
 
 
         # updating the speed s matrix
@@ -222,7 +221,7 @@ def generateSimulationResults(statematrix):
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
         state.setCompletionStatus(completionstatus)
-        if index == 23 or index == 15:  # id
+        if index == 6:  # id
             print('state index,name', index, state.name, state.complete)
         x = 10
     x = 10

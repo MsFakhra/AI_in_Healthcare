@@ -334,7 +334,10 @@ def updateProgressElement(progress_input,state):
             #Updating from elements
             id = prg['from']['id']
             if (state.getid() == id):
-                print('state.getid()', state.getid(),state.name,state.complete)
+                if(id == 'X6'):
+                    print("====STATE===")
+                print('state info', state.getid(),state.complete,state.incomingconnections)
+
                 prg['from']['complete'] = state.complete
                 outputinfo = state.getLastOutput()
                 cur_val = outputinfo.getValue()
@@ -358,7 +361,7 @@ def setstatestatus(request):
 
         #TODO: simulation results have statematrix
         # convert them into jsonData = json.dumps(simulation_results)
-
+        x = 10
         for state in statematrix:
             level = state.getLevel()
             if state.id == 45:
