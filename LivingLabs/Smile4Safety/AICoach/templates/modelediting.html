@@ -300,7 +300,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     <!-- Speed and Initial Values-->
   <div class="row" x-show="(showBaseModel)">
          <div class="col">
-             <h2>Speed and Initial Value of the States</h2>
+             <h2>Initial Value and Speed  factor of the States</h2>
          </div>
       </div>
     <br>
@@ -497,11 +497,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                                 <td><span x-text="ffunc.full_name"></span></td>
                                                 <td>
                                                     <select class="form-select" x-model="ffunc.id" x-on:change="showandSetFLParameter(findex,ffindex)">
-                                                        <option value="ffunc.id" x-text="ffunc.full_name" selected></option>
+                                                        <option value="ffunc.id" x-text="func.full_name" selected></option>
                                                         <template x-for = "cof in combinationfuncs">
                                                             <option :value="cof.id" x-text = "cof.fullname"></option>
                                                         </template>
                                                     </select>
+
                                                 </td>
                                                 <td>
                                                     <div x-show="ffunc.show_params">
@@ -832,7 +833,7 @@ console.log(len)
     index = lastindex + 1
 
     this.baseLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value: ''}],speed:0.0,init_value:0.0, combination_functions:[cfuncobjarray]
-                        , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:false,  values:[{cur_value:0.0, time_stamp:0}]
+                        , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:false,  values:[{cur_value:0.0, time_stamp:0}]
                         })
 
     this.numberOfStates = index
@@ -927,8 +928,11 @@ showandSetFLParameter(sindex,findex)
 {
     //show and set the parameters of the first level
     this.firstOrderLevel[sindex].show_param_btn = true
+    this.show_params = true
 
     id = this.firstOrderLevel[sindex].combination_functions[findex].id
+    console.log('FLfuncname',his.firstOrderLevel[sindex].combination_functions[findex].name)
+
 
     //searching function from json file
     for(let i = 0; i < this.combinationfuncs.length; i++){
@@ -956,7 +960,7 @@ showandSetFLParameter(sindex,findex)
                     parameters:adjustedparams,
                     show_params:false
                 }
-            //console.log(this.combinationfuncs[i], cfuncobjarray,this.baseLevel[bindex])
+            console.log(this.combinationfuncs[i], cfuncobjarray,this.firstOrderLevel[sindex])
             this.firstOrderLevel[sindex].combination_functions[findex] = cfuncobjarray
 
             //this.firstOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
@@ -964,9 +968,6 @@ showandSetFLParameter(sindex,findex)
         }
     }
     //searching function
-
-
-
     this.firstOrderLevel[sindex].combination_functions[findex].show_params=true
 },
 
@@ -994,10 +995,12 @@ addFirstAdaptionLevel(){
             parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
             show_params:false
             }
-
-        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
+        /*this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+                        })*/
     }
 
 },
@@ -1020,9 +1023,14 @@ addFirstLevelState(){
             show_params:false
             }
 
-    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+     this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
+
+    /*this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+                        })
+                        */
 
     //reset second layer
     len = this.firstOrderLevel.length
@@ -1088,7 +1096,8 @@ addFirstLevelCol(findex){
 
 removeFirstLevelCol(index){
     len = this.firstOrderLevel[index].in_connection.length
-    if (len >= 4)
+    //if (len >= 4)
+    if (len > 1)
     {
         this.firstOrderLevel[index].in_connection.splice(this.firstOrderLevel[index].in_connection.length -1 ,1)
         this.firstOrderLevel[index].connection_weights.splice(this.firstOrderLevel[index].connection_weights.length -1 ,1)
@@ -1200,9 +1209,13 @@ addSecondAdaptionLevel(){
             show_params:false
             }
 
-        this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+          this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
+        /*this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+                        })*/
+
     }
 
 },
@@ -1223,10 +1236,12 @@ addSecondLevelState(){
          parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
          show_params:false
     }
-
-    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',complete:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
+    /*this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
+                        })*/
 },
 
 removeSecondLevelState(){
@@ -1259,7 +1274,8 @@ addSecondLevelCol(index){
 
 removeSecondLevelCol(index){
     len = this.secondOrderLevel[index].in_connection.length
-    if (len >= 4)
+    //if (len >= 4)
+    if (len > 1)
     {
         this.secondOrderLevel[index].in_connection.splice(this.secondOrderLevel[index].in_connection.length -1 ,1)
         this.secondOrderLevel[index].connection_weights.splice(this.secondOrderLevel[index].connection_weights.length -1 ,1)

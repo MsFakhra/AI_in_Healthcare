@@ -1,28 +1,6 @@
 <!--
-State Behavior
-
-1.	For the front-end:
-a.	States with no incoming states are considered as Initial states. They will be shown on the interface, when the protocol execution is started.
-b.	No mental state will be shown on the frontend (to the doctors)
-c.	User is allowed to click a state if it is observed, and it is marked as ‘Observed’. State observation will be received from backend.
-2.	For the backend – server side:
-a.	A state receives data continuously and updates its values continuously.
-b.	A state will be observed if it has a value (let’s say if value > 0.2)
-c.	If state has a value (or observed), then it is shown on the interface.
-
-
-Decisive Behaviors
-
-If a causal state is leading to multiple states, then user has to decide to choose ‘Observed’ from them:
-3.	For the front-end:
-a.	When user is offered with multiple states which are observed, user marks any(one) of them as ‘Observed’. Then the rest of the states can be considered as not ‘Not Observed’
-b.	Do we have to limit him to choose only one state as observed? I think not.
-c.	A ‘Not Observed’ state cant lead to the ‘Observed’ state(s).
-d.	If there are other states (along with ‘Not Observed’ state) leading to a state, still the process will continue.
-e.	If the further state(s) are not observed, then they will not be shown on the interface
-4.	For the backend:
-a.	The state values for the observed states are taken into account after user clicks ‘Observed’, and for the rest of the states the value is set constant or 0 and marked as ‘Not Observed’
-b.	If there is a ‘Not Observed’ state (i.e., value = 0), we skip the states that follow this particular state for the dynamics of data. what can be good 0 or constant?
+This version contains the monitoring of states having monitoringstate = true
+and will be showing only the monitoring states -backend data is brought when button is clicked
 -->
 {% extends "base.html" %}
 
@@ -61,12 +39,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             <tr>
                                 <td>
                                     <div x-show="true"> <!--"!bstate.is_internal"-->
-                                        <button id="bstate.id" x-text="bstate.id+':'+bstate.name + bstate.observed + bstate.completed"  type="button"
+                                        <button id="bstate.id" x-text="bstate.id+':'+bstate.name"  type="button"
                                             @click="recordFromAction(cur_prg);"
                                             class="button button4"
-                                            :class="{ 'bg-green-500':  (bstate.completed),
-                                                      'bg-yellow-300' : (bstate.observed),
-                                                      'bg-neutral-300': (!bstate.completed && !bstate.observed)}">
+                                            :class="{ 'bg-yellow-300': (bstate.monitoringstate && !bstate.complete),
+                                                      'bg-green-500':  (bstate.monitoringstate && bstate.complete),
+                                                      'bg-green-300' : (!bstate.monitoringstate && bstate.complete),
+                                                      'bg-neutral-300': (!bstate.monitoringstate && !bstate.complete)}">
                                             <!--:disabled="!bstate.monitoringstate">-->
                                         </button>
                                     </div>
@@ -116,12 +95,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             i.e., if a state is an initial state, or it is completed*/
             curProgress:[],
             /* this structure contains remaining progress of network
-            i.e., if all observed states are in the curProgress then it contains the states left as inobserved*/
+            i.e., if all completed states are in the curProgress then it contains the states left as incomplete*/
             remProgress:[],
 
             language:'nl-NL',
             iteration:0,
-            goTimer:true,  // should the timer method be called?
+            goTimer:false,  // should the timer method be called?
 
 
 
@@ -133,8 +112,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     This function is called when a from element is clicked
                     Input: current progress (cur_prg) and state (bstate)
                     Assumptions: State is not an internal state.
-                    Output: 1. State is marked as observed, if it is not observed before
-
+                    Output: 1. State is considered to be completed.
+                            2. Show other outgoing states which are not internal
                 */
                 //console.log('recordFromAction - before updation - base level network', this.incomingBaseLevelNetwork)
 
@@ -142,41 +121,81 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 from_elem = cur_prg.from
                 //console.log('from_elem', from_elem);
-                //1.a. set the state as observedd
+                //1.a. set the state as completed
                 // preliminary checks
-                //1.a.a. if the state is already observedd
+                //1.a.a. if the state is already completed
 
-                if(from_elem.completed)
+                if(from_elem.complete)
                 {
-                    console.log('state is already completed')
+                    console.log('state is already completed/observed')
                     return
                 }
 
-                from_elem.observed = true
-                from_elem.completed = true
+                //1.a.b. if all incoming connections are completed then make it true and update all matrices accordingly
 
-                return
+                if(from_elem.initial_state)
+                {
+                    from_elem.complete = true;
+                    //update all matrices accordingly
+                    nextidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === from_elem.id )
+                    if (nextidx > -1)
+                    {
+                        this.incomingBaseLevelNetwork[nextidx].state.complete = true
+                        //console.log('STATUS', this.incomingBaseLevelNetwork[nextidx].state.complete)
+                    }
+                }
+                else
+                {
+                    //WORKING HERE
+
+                    //if all incoming connections are completed then make it true
+                    //console.log('state is not initial state', from_elem)
+                    iidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === from_elem.id )
+                    //console.log('iidx', iidx)
+                    if(iidx > -1){
+                        causal_impact = this.checkCausalImpact(iidx)
+                        //console.log('causal_impact', causal_impact)
+                        if (causal_impact)
+                        {
+                            //update the incomingNetwork and the completeProgress elements
+                            from_elem.complete = causal_impact
+                            this.incomingBaseLevelNetwork[iidx].state.complete = causal_impact
+                            prgidx = this.completeProgressOfNetwork[this.iteration].progress.findIndex(e => e.from.id === from_elem.id )
+                            //console.log('prgidx', prgidx)
+                            if(prgidx > -1)
+                            {
+                                //console.log('elem', this.completeProgressOfNetwork[this.iteration].progress[prgidx].from)
+                                this.completeProgressOfNetwork[this.iteration].progress[prgidx].from.complete = true
+                                cur_prg.from.complete = true
+                            }
+                        }
+                        else
+                        {
+                            console.log('causal impact NOT found')
+                        }
+
+                    }
+                }
+
+
+                //1.b. update the values of the current state
+                this.sendStatusUpdate(from_elem)
+
+                //2. get status update on user click
+                this.getStatusUpdate()
+
+                this.goTimer = true
             },
 
             //////////////////////////supporting methods
 
             startTimer() {
-            /* This function will recieve the data from backend continously, untill the whole protocol is completed*/
-
-            setInterval(() => {
-                 if (this.goTimer == true) {
-                     this.getStatusUpdate()
-                    }
-                }, 10000);
-
-
-            /*  OLD : this function will start to check if current progress is completed, if all progress is completed
+            /*  this function will start to check if current progress is completed, if all progress is completed
                 then it will show a button to show the next element
-
-
+            */
                     setInterval(() => {
                         if (this.goTimer == true) {
-                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.observed == false);
+                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.complete == false);
                             if(idx > -1) {
                                 console.log('killing timer');
                                 this.gotTimer = false;
@@ -186,11 +205,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             }
 
                         }
-                    }, 1000);*/
+                    }, 1000);
             },
 
             showNextProgressElement(){
-                /* This function is called when all states in curProgress are observed
+                /* This function is called when all states in curProgress are complete
                     it gets the next progress element based upon the clicked state.
                     1. check the status of incoming elements and then show the next element
                     //this.completeProgressOfNetwork[this.iteration] = {progress: progress}
@@ -236,21 +255,21 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             checkCausalImpact(index)
             {   //TO-DO: CHECK IT
                 /*  This function checks the causal impacts of all incoming states,
-                    if all states are observed, then it can return true.
+                    if all states are complete, then it can return true.
                 */
                 final_status = false
                 cur_status = []
                 incoming_ids = this.incomingBaseLevelNetwork[index].state.in_connection
                 for (var i = 0; i < incoming_ids.length; i++){
                     id_value = incoming_ids[i].value
-                    //check if the incoming state is observed
+                    //check if the incoming state is complete
                     pidx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id === id_value)
                     console.log('check causal impact of pidx', pidx,id_value)
                     if(pidx > -1){
                         //state is found.
                         //save the status
                         state = this.curProgress[this.iteration].cur_progress[pidx]
-                        status = state.observed
+                        status = state.complete
                         status = (status === 'true');
 
                         /*if(status !== true || status != false)
@@ -303,173 +322,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             },
 
-            //async
-            sendStatusUpdate(){
-            /* This function sends the data to django view to start simulation
-               Algorithm:
-                1. update values for every state.
-                2. once they are updated, then send to server
-            */
-
-
-                //1. update the values for all three levels
-                time_stamp = this.getTime();
-
-                for(var i = 0; i < this.incomingBaseLevelNetwork.length > 0; i++)
-                {
-                    incomingstate = this.incomingBaseLevelNetwork[i].state
-
-                    //Update the current progress
-                    idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == incomingstate.id && e.from.completed == true)
-                    if(idx > -1)
-                    {
-                        if(this.curProgress[this.iteration].cur_progress[idx].from.completed)
-                        {
-                            this.curProgress[this.iteration].cur_progress[idx].from.observed = true
-                            incomingstate.observed = true
-                            incomingstate.completed = true
-                        }
-                    }
-                    values = incomingstate.values
-                    //TO-DO: Do I need to use this except for the last value?
-                    if(values.length > 1)   //at index 0 there is no value; used for structure only //pick the last element
-                    {
-                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
-                        console.log('Last value',incomingstate,cur_value)
-                    }
-                    else
-                    {
-                        cur_value = parseFloat(incomingstate.init_value)
-                        incomingstate.values[incomingstate.values.length - 1].cur_value = cur_value
-                        incomingstate.values[incomingstate.values.length - 1].time_stamp = time_stamp
-                    }
-
-
-                }
-
-                //updating firstOrderNetwork
-                for(var i = 0; i < this.firstOrderLevelNetwork.length > 0; i++)
-                {
-                    incomingstate = this.firstOrderLevelNetwork[i].state
-                    //console.log('incomingstate',incomingstate)
-                    values = incomingstate.values
-                    if(values.length > 1)   //at index 0 there is no value; used for structure only //pick the last element
-                    {
-                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
-                    }
-                    else
-                    {
-                        cur_value = parseFloat(incomingstate.init_value)
-                        incomingstate.values[incomingstate.values.length - 1].cur_value = cur_value
-                        incomingstate.values[incomingstate.values.length - 1].time_stamp = time_stamp
-                    }
-                }
-
-                //updating secondOrderNetwork
-                for(var i = 0; i < this.secondOrderLevelNetwork.length > 0; i++)
-                {
-                    incomingstate = this.secondOrderLevelNetwork[i].state
-                    values = incomingstate.values
-                    console.log('values.length',values.length)
-                    if(values.length > 1)   //at index 0 there is no value; used for structure only //pick the last element
-                    {
-                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
-
-                    }
-                    else
-                    {
-                        cur_value = parseFloat(incomingstate.init_value)
-                        incomingstate.values[incomingstate.values.length - 1].cur_value = cur_value
-                        incomingstate.values[incomingstate.values.length - 1].time_stamp = time_stamp
-                    }
-                }
-
-
-
-
-                for (var i = 0; i < this.completeProgressOfNetwork[this.iteration].progress.length; i++)
-                {
-                    from_elem = this.completeProgressOfNetwork[this.iteration].progress[i].from
-
-                    idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id && e.from.completed == true)
-                    if(idx > -1)
-                    {
-                        from_elem.observed = true
-                        from_elem.completed = true
-                    }
-
-                    values = from_elem.values
-                    if(values.length > 1)
-                    {
-                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
-                    }
-                    else
-                    {
-                        cur_value = parseFloat(incomingstate.init_value)
-                        incomingstate.values[incomingstate.values.length - 1].cur_value = cur_value
-                        incomingstate.values[incomingstate.values.length - 1].time_stamp = time_stamp
-                    }
-                }
-
-
-                out_data = {
-                    id: this.id,
-                    name: this.name,
-                    base_level: this.incomingBaseLevelNetwork,
-                    first_level: this.firstOrderLevelNetwork,
-                    second_level: this.secondOrderLevelNetwork,
-                    last_progress: this.completeProgressOfNetwork
-                }
-
-                console.log('Before sendStatusUpdate')
-                console.log('sending data to server', out_data)
-
-                axios({
-                method: 'post',
-                url: '/setcurrentstatus/',
-                data: {
-                    id: this.id,
-                    name: this.name,
-                    base_level: this.incomingBaseLevelNetwork,
-                    first_level: this.firstOrderLevelNetwork,
-                    second_level: this.secondOrderLevelNetwork,
-                    last_progress: this.completeProgressOfNetwork
-                },
-                headers: {//'Content-Type': 'application/json',
-                           'X-CSRFToken': csrftoken},
-                           validateStatus: (status) => {         //validateStatus
-                           return true;
-                          },
-                })
-                .then((response) => {
-                    if (response.status == '200')
-                    {
-                        console.log(response.status);
-                    }
-
-                }, (error) => {
-                    console.log(error.response.data);
-                });
-
-                console.log('sending data to server', out_data)
-            },
 
             async getStatusUpdate(){
             /*  This function is called to to update the values from django view for all the states in the model
-                Algorithm:
-                    1. If one of the shown states is clicked then it starts to get the values, otherwise it doesn't get the values
-                    2. first it sends the current data to the server, and then it receives the data
             */
-
-                console.log("status update called")
-                idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.observed == true)
-                //1. It doesn't proceed if there is no state clicked at all
-                if(idx <= -1)
-                   return
-
-                this.sendStatusUpdate()
-
-
                 try {
                     let data_url = './getstatestatus/'  //dont forget the trailing slash
                     response = await axios.get(data_url);
@@ -483,43 +339,52 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     second_level = rec_model_info.second_level
 
 
-
-
                     //updation of matrices
 
                     this.incomingBaseLevelNetwork = base_level
                     this.firstOrderLevelNetwork = first_level
                     this.secondOrderLevelNetwork = second_level
 
-                    //console.log('After updation - BaseLevel',this.incomingBaseLevelNetwork)
-                    //console.log('After updation - First Level',this.firstOrderLevelNetwork)
-                    //console.log('After updation - Second Level',this.secondOrderLevelNetwork)
+                    cur_prg = this.completeProgressOfNetwork[this.iteration].progress
 
-
-                    //WORKING HERE
-                    //// values sent are done, recieving in incoming base level
-                    //simulation is working
-                    //matrices are updating, now have to work on curprg
-
-                    complete_prg = this.completeProgressOfNetwork[this.iteration].progress
-
-                    console.log('last_progress',r_last_progress)
-                    //console.log('complete_prg',complete_prg)
+                    //console.log('last_progress',r_last_progress)
+                    //console.log('cur_prg',cur_prg)
                     //console.log('this.curProgress[this.iteration]',this.curProgress[this.iteration])
-
                     for(var i = 0; i < r_last_progress['progress'].length; i++)
                     {
                         from_elem = r_last_progress['progress'][i].from
                         //console.log('from_elem',from_elem)
                         //updation of status in currentProgress
-                        complete_prg[i].from.observed = from_elem.observed
+                        cur_prg[i].from.complete = from_elem.complete
 
-                        if(!from_elem.completed && from_elem.observed)
+                        if(from_elem.complete)
                         {
-                            //If element is not already in the curProgress then add the element to the current progress
-                            this.updateProgress(from_elem,complete_prg)
+                            //console.log('from_elem',from_elem)
+                            //TO-DO: this.updateCurrentProgress(from_elem) remove this if this doesnt work
 
-                            console.log('updateProgress returned',from_elem,complete_prg,this.incomingBaseLevelNetwork);
+                            //if it is not already in current progress then append it in curProgress
+                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
+                            //console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
+                            if(idx < 0)
+                            {
+                                is_internal = from_elem.is_internal
+                                //console.log(" returned from server: is internal",is_internal,from_elem)
+                                //if(!is_internal)
+
+                                    this.curProgress[this.iteration].cur_progress.push(cur_prg[i])
+                            }
+
+                            //if it is in current progress then remove it from remaining progress
+
+                            ridx = this.remProgress[this.iteration].rem_progress.findIndex(e => e.from.id == from_elem.id)
+                            //console.log('REM idx',ridx, this.remProgress[this.iteration].rem_progress)
+
+                            if(ridx > -1)
+                            {
+                                elem = this.remProgress[this.iteration].rem_progress[ridx]
+                                this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
+                                //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
+                            }
                         }
 
                         //TODO: update fout status if there are to elemets in parallel
@@ -543,52 +408,149 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 }
             },
 
-            updateProgress(from_elem, complete_prg){
-                    /*
-                        if element is not an internal state, and not already in current progress then append it in curProgress and remove from remaining progress.
-                        if element is an internal state, then just complete it
-                        if the element is an internal state then also complete the incomingBaseLevelNetwork
-                    */
+            updateCurrentProgress(from_elem){
+                    //if it is not already in current progress then append it in curProgress
+                    idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
+                    //console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
+                    if(idx < 0)
+                    {
+                        is_internal = from_elem.is_internal
+                        //console.log(" returned from server: is internal",is_internal,from_elem)
+                        //if(!is_internal)
 
-                    if(from_elem)
-                        if(!from_elem.is_internal)
-                        {
-                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
-                            console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
-                            if(idx < 0)
-                            {
-                                //check the element from complete progress
-                                cidx = complete_prg.findIndex(e => e.from.id == from_elem.id)
-                                if(cidx > -1)
-                                {
-                                    this.curProgress[this.iteration].cur_progress.push(complete_prg[cidx])
-                                }
+                            this.curProgress[this.iteration].cur_progress.push(cur_prg[i])
+                    }
 
-                                //if it is in current progress then remove it from remaining progress
-                                ridx = this.remProgress[this.iteration].rem_progress.findIndex(e => e.from.id == from_elem.id)
-                                //console.log('REM idx',ridx, this.remProgress[this.iteration].rem_progress)
-                                if(ridx > -1)
-                                {
-                                    elem = this.remProgress[this.iteration].rem_progress[ridx]
-                                    this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
-                                    console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
-                                }
-                            }
-                        }
-                        else
-                        {
-                            //update progress and incomingBaseLevelNetwork
-                            cidx = complete_prg.findIndex(e => e.from.id == from_elem.id)
-                            if(cidx > -1)
-                            {
-                               complete_prg[cidx].from.completed = true
-                               this.incomingBaseLevelNetwork[cidx].state.completed = true
-                            }
+                    //if it is in current progress then remove it from remaining progress
+
+                    ridx = this.remProgress[this.iteration].rem_progress.findIndex(e => e.from.id == from_elem.id)
+                    //console.log('REM idx',ridx, this.remProgress[this.iteration].rem_progress)
+
+                    if(ridx > -1)
+                    {
+                        elem = this.remProgress[this.iteration].rem_progress[ridx]
+                        this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
+                        //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
+                    }
 
 
-                        }
+
             },
 
+            updateStateValues(curstate,level,time_stamp){
+                /*This function updates the states values of the connections
+                    input: state that has been updated
+                    level:0/1/2
+                    time_stamp: current time_stamp
+                    if curstate is found it is initialized by certain value; otherwise last value is placed
+                */
+
+                //console.log('updateStateValues - curstate', curstate)
+                if (level == 0)
+                    arr = this.incomingBaseLevelNetwork
+                else if (level == 1)
+                    arr = this.firstOrderLevelNetwork
+                else if (level == 2)
+                    arr = this.secondOrderLevelNetwork
+
+                for(var i = 0; i < arr.length; i++){
+                    incomingstate = arr[i].state
+                    values = incomingstate.values
+                    if(incomingstate.id == curstate.id && curstate.complete)
+                        cur_value = 1//state.init_value; //1
+                    else
+                        cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
+
+                    //incomingstate.complete = curstate.complete
+                    value = {cur_value:cur_value, time_stamp:time_stamp}
+                    values.push(value)
+                }
+            },
+
+            updateCompleteProgress(curstate,time_stamp){
+                  /*This function updates the states values of the connections
+                    input: state that has been updated
+                    level:0/1/2
+                    time_stamp: current time_stamp
+                    if curstate is found it is initialized by certain value; otherwise last value is placed
+                */
+
+                //console.log('updateCompleteProgress - curstate', curstate, this.completeProgressOfNetwork[this.iteration].progress)
+
+                to_be_updated_idx = this.completeProgressOfNetwork[this.iteration].progress.findIndex(e => e.from.id == curstate.id)
+                updated_idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == curstate.id)
+                if(to_be_updated_idx > -1){
+                    //console.log('to_be_updated_idx', this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx])
+                    if(updated_idx > -1)
+                    {
+                        //console.log('updated_idx', updated_idx,this.incomingBaseLevelNetwork[updated_idx])
+                        this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx].from.complete = this.incomingBaseLevelNetwork[updated_idx].state.complete
+                        //console.log('updated', this.completeProgressOfNetwork[this.iteration].progress[to_be_updated_idx],this.incomingBaseLevelNetwork[updated_idx])
+                    }
+
+                }
+
+
+
+
+            },
+            sendStatusUpdate(state){
+            /* This function sends the data to django view to start simulation
+               At the same time, it will get the values updated from the simulation results
+            */
+
+                //set the values for all three levels
+                time_stamp = this.getTime();
+                this.updateStateValues(state,0,time_stamp) //set the values for state at this.incomingBaseLevelNetwork
+                this.updateStateValues(state,1,time_stamp) //set the values for state at this.firstOrderLevelNetwork
+                this.updateStateValues(state,2,time_stamp) //set the values for state at this.firstOrderLevelNetwork
+
+                this.updateCompleteProgress(state,time_stamp) //update the complete progress
+
+
+                console.log('Before sendStatusUpdate')
+                //console.log('base level network', this.incomingBaseLevelNetwork)
+                //console.log('first level network', this.firstOrderLevelNetwork)
+                //console.log('second level network', this.secondOrderLevelNetwork)
+                //console.log('last_progress in complete progress', this.completeProgressOfNetwork)
+                out_data = {
+                    id: this.id,
+                    name: this.name,
+                    base_level: this.incomingBaseLevelNetwork,
+                    first_level: this.firstOrderLevelNetwork,
+                    second_level: this.secondOrderLevelNetwork,
+                    last_progress: this.completeProgressOfNetwork
+                }
+
+                console.log('sending data to server', out_data)
+
+                axios({
+                method: 'post',
+                url: '/setstatestatus/',
+                data: {
+                    id: this.id,
+                    name: this.name,
+                    base_level: this.incomingBaseLevelNetwork,
+                    first_level: this.firstOrderLevelNetwork,
+                    second_level: this.secondOrderLevelNetwork,
+                    last_progress: this.completeProgressOfNetwork
+                },
+                headers: {//'Content-Type': 'application/json',
+                           'X-CSRFToken': csrftoken},
+                           validateStatus: (status) => {         //validateStatus
+                           return true;
+                          },
+                })
+                .then((response) => {
+                    if (response.status == '200')
+                    {
+                        console.log(response.status);
+                    }
+
+                }, (error) => {
+                    console.log(error.response.data);
+                });
+            },
 
             getTime(){
             //This method returns curr time
@@ -647,16 +609,15 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     }
                     else
                     {
-                        //check if this is the last entry then show it as observedd
+                        //check if this is the last entry then show it as completed
                         //console.log('getToElementsofaState: from_state', from_state)
                         if(from_state.id == '')
                         {
 
                             from = this.createNewElement(from_state)
                             //console.log('LASTTTTTTTTTTTT STATE:', from_state,produce)
-                            //if last state is klaar, mark it as observedd
-                            from.observed = true
-                            from.completed = true
+                            //if last state is klaar, mark it as completed
+                            from.complete = true
                             to = []
                             entry = {
                                 from: from,
@@ -679,8 +640,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 from = this.createNewElement(cur_prg.from)
                 to = this.generateToElements(cur_prg.to)
-                //observedd = this.updateStateStatus(from)
-                //console.log('observedd',observedd)
+                //completed = this.updateStateStatus(from)
+                //console.log('completed',completed)
 
                 entry = {
                            from: from,
@@ -732,41 +693,32 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             initializeProgress()
             {
                 /* This function populates the network to be displayed for the initial states
-                    It also allocates the memory for the progress network.
-                    It does not include the initial states
+                    It also allocates the memory for the network
                 */
 
                 progress = []
                 cur_progress = []
                 rem_progress = []
                 //populating the network with the initial states
-                //console.log('this.outgoingBaseLevelNetwork', this.outgoingBaseLevelNetwork)
                 for (i = 0; i < this.outgoingBaseLevelNetwork.length; i++)
                 {
                     curiterEntry = this.outgoingBaseLevelNetwork[i]
-                    from_elem = curiterEntry.from
-                    initial_state = from_elem.initial_state
-                    is_internal = from_elem.is_internal
-                    //console.log('initial_state, is_internal', initial_state, is_internal, from_elem.name)
+                    initial_state = curiterEntry.from.initial_state
+                    is_internal = curiterEntry.from.is_internal
                     entry = this.createNewEntry(curiterEntry)
                     progress.push(entry)
                     if(initial_state)
                     {
-                        if(is_internal == false)
+                        //console.log("is internal",is_internal,curiterEntry)
+                        //if(!is_internal)
                             cur_progress.push(entry)
                     }
                     else
-                    {
-                        if(is_internal == false)
-                            rem_progress.push(entry)
-                    }
+                        rem_progress.push(entry)
 
 
                 }
-                //console.log('progresses: complete progress',progress)
-                //console.log('progresses: current progress',cur_progress)
-                //console.log('progresses: remaining progress',rem_progress)
-
+                //console.log('progress',progress,this.outgoingBaseLevelNetwork)
                 this.completeProgressOfNetwork[this.iteration] = {progress}
                 if(cur_progress.length > 0)
                 {
@@ -951,7 +903,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                    for(var i = 0; i < model.states.length; i++){
                       state = model.states[i]
-                      state = this.createNewElement(state)
                       if(level == 'base')
                       {
                           incoming_states = this.getIncomingStates(state,model)
@@ -959,12 +910,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       }
                       else if(level == 'first')
                       {
-                        state.completed = true
                         this.firstOrderLevelNetwork.push({state: state})
                       }
                       else if(level == 'second')
                       {
-                        state.completed = true
                         this.secondOrderLevelNetwork.push({state: state})
                       }
                    }
@@ -990,7 +939,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             found = true
                             incoming_stateidx = model.states.findIndex(e => e.id.toLowerCase() == conn_value)
                             incoming_state = model.states[incoming_stateidx]
-                            incoming_state = this.createNewElement(incoming_state)
                             incoming_states.push(incoming_state)
                         }
                    }
@@ -1009,12 +957,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
               if(element)
               {
                     //convert strings if any to boolean
-                    var completed = (element.completed === 'true');
-                    /*is_internal = false
+                    var complete = (element.complete === 'true');
+                    is_internal = false
                     if(element.is_internal == 'true' || element.is_internal == true)
                         is_internal = true
-
-                    */
 
                     elem = {
                     id: element.id,
@@ -1028,8 +974,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     speed: element.speed,
                     message: element.message,
                     sentiment_lbl: element.sentiment_lbl,
-                    completed: completed,
-                    observed: false,
+                    complete: complete,
                     is_internal:element.is_internal,
                     values:element.values,
                     initial_state: element.initial_state,
@@ -1051,8 +996,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     speed: 0,
                     message: [],
                     sentiment_lbl: 'Positive',
-                    completed: completed,
-                    observed: false,
+                    complete:false,
                     is_internal:false,
                     values:[],
                     initial_state:false,

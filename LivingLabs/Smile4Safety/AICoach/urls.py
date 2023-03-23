@@ -17,6 +17,7 @@ urlpatterns = [
     path('modelspecification/', views.modelspecification, name="modelspecification"),
     path('messagespecification/', views.messagespecification, name="messagespecification"),
 
+
     #editing the model
     path('modelediting/', views.modelediting, name='modelediting'),
     path('specificationedited/', views.specificationedited, name="specificationedited"),
@@ -30,6 +31,8 @@ urlpatterns = [
     path('monitoring/', views.monitoring, name="monitoring"),
 
     #sending recieving data
+    path('setcurrentstatus/', views.setcurrentstatus, name="setcurrentstatus"),
+    #older - implemented with state
     path('setstatestatus/', views.setstatestatus, name="setstatestatus"),
 
     path('getstatestatus/', views.getstatestatus, name="getstatestatus"),

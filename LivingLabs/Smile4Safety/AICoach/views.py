@@ -105,7 +105,9 @@ def modelcreation(request):
     return render(request, 'modelcreation.html', {'data': dataJSON})
 
 def modelspecification(request):
-    '''This function writes the model specification to the database. Alternative of statespecification'''
+    '''This function writes the model specification to the database.
+    It is called from modelcreation
+    '''
     # writing new model to the database
     if request.method == 'POST':
         data = request.body  # retrieving model in bytes
@@ -123,7 +125,7 @@ def modelspecification(request):
 
         ModelSpecification.objects.create(model_name=name, model_specification=jsonspecs,
                                           last_modified=datetime.now(timezone.utc))
-        return JsonResponse({"status": 'ModelSpecification object created - success statespecification'})
+        return JsonResponse({"status": 'ModelSpecification object created - success messagespecification'})
 
     else:
         return JsonResponse({"status": 'no model received'})
@@ -204,6 +206,7 @@ def specificationedited(request):
         return JsonResponse({"status": 'success to editting'})
 
 def modelspecificationupdated(request):
+    #TODO: CHECK it!!!This method is called when the model specification has been updated
     if request.method == 'POST':
         data = request.body  # retrieving model in bytes
 
@@ -222,6 +225,7 @@ def modelspecificationupdated(request):
         modelobj.save()
 
         return JsonResponse({"status": 'success to update'})
+
 
 def messagespecificationupdated(request):
     '''This function is replica of updatespecification algorithm is
@@ -251,7 +255,7 @@ def messagespecificationupdated(request):
         return JsonResponse({"status": 'success to update'})
 
 def supportspecificationupdated(request):
-    '''replica od rolesspcification updated: url of messagespecification'''
+    '''url of messagespecification'''
     return JsonResponse({"status": 'Roles updated . Show success interface'})
 
 
@@ -319,11 +323,12 @@ def updateModelSpecification(model_input,state):
         stateinfo = input['state']
         id = stateinfo['id']
         if(state.getid() == id):
-            stateinfo['complete'] = state.complete
+            stateinfo['observed'] = state.observed
             outputinfo = state.getLastOutput()
             cur_val = outputinfo.getValue()
             time_stamp = outputinfo.getTimeStamp()
             stateinfo['values'].append({'cur_value':cur_val , 'time_stamp': time_stamp})
+    x = 10
 
 def updateProgressElement(progress_input,state):
     for iteration in progress_input:
@@ -334,17 +339,61 @@ def updateProgressElement(progress_input,state):
             #Updating from elements
             id = prg['from']['id']
             if (state.getid() == id):
-                if(id == 'X6'):
-                    print("====STATE===")
-                print('state info', state.getid(),state.complete,state.incomingconnections)
+                #if(id == 'X6'):
+                #    print("====STATE===")
+                #print('state info', state.getid(),state.observed,state.incomingconnections)
 
-                prg['from']['complete'] = state.complete
+                prg['from']['observed'] = state.observed
                 outputinfo = state.getLastOutput()
                 cur_val = outputinfo.getValue()
                 time_stamp = outputinfo.getTimeStamp()
                 prg['from']['values'].append({'curvalue':cur_val , 'time_stamp':time_stamp})
                 #print('from state',prg['from'])
+    x = 10
 
+def setcurrentstatus(request):
+    # This function is used to set the status of the states
+
+    if request.method == 'POST':
+        data = request.body  # retrieving model in bytes
+        #print('data', data)
+
+        statematrix = simulation_controller(data)
+
+        model_input_sample = json.loads(data)  # returns dictionary
+        model_input = json.loads(data)  # returns dictionary
+
+        # print("=======Views:Model Input =========================")
+        # print(model_input)
+
+        # TODO: simulation results have statematrix
+        # convert them into jsonData = json.dumps(simulation_results)
+        x = 10
+        for state in statematrix:
+            level = state.getLevel()
+            if state.id == 45:
+                x = 10
+            if level == 0:
+                updateModelSpecification(model_input['base_level'], state)
+                updateProgressElement(model_input['last_progress'], state)
+            else:
+                if level == 1:
+                    updateModelSpecification(model_input['first_level'], state)
+                else:
+                    if level == 2:
+                        updateModelSpecification(model_input['second_level'], state)
+
+        # model_output = model_input_sample
+        model_output = model_input
+        # print("=======Model Output =========================")
+        # print(model_output)
+
+        jsonData = json.dumps(model_output)  # returns string
+
+        request.session['progress'] = jsonData
+        # print(jsonData)
+
+    return HttpResponse(status=204)
 
 def setstatestatus(request):
     # This function is used to set the status of the states
@@ -359,7 +408,7 @@ def setstatestatus(request):
         #print("=======Views:Model Input =========================")
         #print(model_input)
 
-        #TODO: simulation results have statematrix
+        #simulation results have statematrix
         # convert them into jsonData = json.dumps(simulation_results)
         x = 10
         for state in statematrix:

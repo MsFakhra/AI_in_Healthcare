@@ -1,4 +1,3 @@
-#this version computes the observation status ... if a state has value > THRESHOLD then it is observed
 import re, os
 import numpy as np
 import math
@@ -6,10 +5,8 @@ import json as json
 from datetime import datetime
 ################# Controller methods
 
-
-
 def simulation_controller(data):
-    #print('generating simulation')
+    print('generating simulation')
     statematrix = generateStateInformation(data)
     generateSimulationResults(statematrix)
     return statematrix
@@ -45,9 +42,6 @@ def generateStateInformation(data):
                     element = info
                     state = element['state']
                     index = state['id']
-                    values = state['values']
-                    last_value = state['values'][-1]
-
                     id = state['id']  # X1
                     if id == 'X5':
                         x = 10
@@ -63,6 +57,7 @@ def generateStateInformation(data):
 
 
                     init_value = float(state['init_value'])
+                    last_value = state['values'][-1]
                     combination_functions = state['combination_functions']
                     is_internal = state['is_internal']
 
@@ -71,68 +66,64 @@ def generateStateInformation(data):
                     connectionweight = extractIncomingConnectionWeights(state,connection_weights, in_connections)  # returns connection weights
                     cfv_structure = extractCFVStructure(combination_functions)
 
-                    # if state is from other levels make them observed
+                    # if state is from other levels make them complete
                     if key == 'first_level' or key == 'second_level':
-                        completed = True
+                        complete = True
                     else:
-                        completed = state['completed']
-
-                    observed = state['observed']
-
-
+                        complete = state['complete']
                     #initial_state = state['initial_state']
-                    state = State(id, index, name, incomingconnections, connectionweight, speed, init_value, cfv_structure,level,is_internal,completed,observed)#,initial_state)
+                    state = State(id, index, name, incomingconnections, connectionweight, speed, init_value, cfv_structure,level,complete,is_internal)#,initial_state)
                     statematrix.append(state)
 
 
                     # set the initial values from the previous simulation results
-                    #check if it is being executed for the first time then set initial value as the first output value otherwise
-
                     time_stamp = last_value['time_stamp']
                     last_output = last_value['cur_value']
                     if(np.isnan(last_output)):
                         last_output = 0
                     soutput = StateOutput(time_stamp, last_output)
                     state.setOutputValues(soutput)
-                    state.setObservationStatus(observed)
-
-                    if state.index == 45 or state.index == 46 or state.index == 48  or state.index == 16  or state.index == 66:
-                        print('Input read was', state.index, state.name, state.observed, state.completed,last_output,values)
-                        x = 10
 
     return statematrix
 
 ####SimulationResults####
 def generateSimulationResults(statematrix):
-    #print('This generates the simulation for single iteration')
+    print('This generates the simulation for single iteration')
 
     curriteration = 1
     last_iteration = 0
     cur_time_stamp = datetime.now()
     for state in statematrix:  # j for all states in the state matrix
         index = state.index
-
+        #print('state index,name',index,state.name,state.complete)
+        if state.index == 6:
+            x = 10
         speed = state.speed
         connection_weights = state.connection_weights
         cfv_structure = state.cfv_structure
         stateinput = []
         incomingconnections = state.incomingconnections
 
+        completionstatus = state.complete
         inc_completed = []
         # updating the state connections with values the 'b' matrix
         for connection in incomingconnections:
             #print('connection',connection)
             if not (is_valid_float(connection)):
                 statevalue = getStateOutputValues(connection, statematrix)#get the last value
-                #get completion status of incoming connections
-                cmp_status = getIncomingCompletionStatus(connection,statematrix,state)
-                inc_completed.append(cmp_status)
-                #print('completion status ', connection, inc_completed)
+                inc_completionstatus = getIncomingCompletionStatus(connection,statematrix,state)
+                inc_completed.append(inc_completionstatus)
+                #print('completion status ', connection, inc_completionstatus)
 
                 stateinput.append(statevalue)
             else:
                 stateinput.append(0)
         stateinput = np.array(stateinput)
+        if(completionstatus != True):
+            status = getCompletionStatus(inc_completed)
+            if (status != 'Unknown'):
+                completionstatus = status
+
 
         # updating the speed s matrix
         """ if not(isnan(msa(j, 1)))
@@ -229,52 +220,23 @@ def generateSimulationResults(statematrix):
         soutput = StateOutput(date_time, nextStateValue)
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
-
-        # a state is observed when its fulfilled. Kepping in mind, it is completed by the user only
-        #Criteria incoming complete & observed
-
-        sys_completion_status = state.completed
-        observedstatus = state.observed
-        if(sys_completion_status != True and observedstatus != True):
-            incoming_completion_from_states = getCompletionStatus(inc_completed)
-            if (incoming_completion_from_states == True):
-                if(state.is_internal):
-                    sys_completion_status = True
-                    observedstatus = True
-                else:
-                    if(nextStateValue > OBS_THRESHOLD):
-                        observedstatus = True
-
-        if(state.is_internal and observedstatus):
-            sys_completion_status = True
-
-        state.setCompletionStatus(sys_completion_status)
-        state.setObservationStatus(observedstatus)
-
-
-        if state.index == 45 or state.index == 46 or state.index == 48 or state.index == 16 or state.index == 66:
-            print('state index,name', index, state.name, state.observed, state.completed, nextStateValue,sys_completion_status, inc_completed)
-            x = 10
-
-        #print("State user_completed & incoming complete & observed & value", state.name, user_completion_status, incoming_completion_from_states, observedstatus, nextStateValue,state.getOutputValues())
-
-
-
-
+        state.setCompletionStatus(completionstatus)
+        if index == 6:  # id
+            print('state index,name', index, state.name, state.complete)
+        x = 10
     x = 10
 
 
 ## support functions
 
-def getCompletionStatus(observedstatusarr):
-    #this function returns true if all incoming connections are completed
-    if len(observedstatusarr) > 0:
-        if False in observedstatusarr:
+def getCompletionStatus(completionstatusarr):
+    if len(completionstatusarr) > 0:
+        if False in completionstatusarr:
             return False
         else:
             return True
     else:
-        return False
+        return 'Unknown'
 
 def is_valid_float(element: str) -> bool:
     try:
@@ -297,8 +259,8 @@ def getIncomingCompletionStatus(connection, statematrix,curstate):
 
     index = int(re.findall(r'\d+', connection)[0])
     state = statematrix[index - 1]
-    completedstatus = state.completed
-    return completedstatus
+    completionstatus = state.complete
+    return completionstatus
 
 
 def findAdaptiveSpeed(speed):
@@ -388,7 +350,7 @@ def extractCFVStructure(combination_functions):
 
 ######## ASSUMPTIONS
 
-OBS_THRESHOLD = 0#0.002
+THRESHOLD = 0#.1
 
 #########
 class CombiationFunctionStructure:
@@ -417,7 +379,7 @@ class CombiationFunctionStructure:
         self.impactweight = impactweight
 
 class State:
-    def __init__(self, id, index, name, b, cw,s,init_value,cfv_structure,level,is_internal,completed,observed):#,initial_state):
+    def __init__(self, id, index, name, b, cw,s,init_value,cfv_structure,level,complete,is_internal):#,initial_state):
         self.index = index
         self.id = id
         self.name = name  # string
@@ -430,16 +392,10 @@ class State:
         self.mcfw = []
         self.speed = s
         self.level = level
-        self.completed = completed
-        self.observed = observed
+        self.complete = complete
         #self.initial_state = initial_state
         self.is_internal = is_internal
 
-    def setObservationStatus(self,observed):
-        self.observed = observed
-
-    def setCompletionStatus(self, completion_status):
-        self.completed = completion_status
 
     def isInitialState(self):
         if (self.incomingconnections):
@@ -478,6 +434,8 @@ class State:
     def setFinalValue(self, fv):
         self.finalvalue = fv
 
+    def setCompletionStatus(self, completionstatus):
+       self.complete = completionstatus
 
 class StateOutput:
     def __init__(self, t, outputvalue):

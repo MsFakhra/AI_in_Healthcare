@@ -143,3 +143,6 @@ CORS_ORIGIN_WHITELIST = (
     'https://localhost:8000',
     'https://localhost'
 )
+
+#request data too big error
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
