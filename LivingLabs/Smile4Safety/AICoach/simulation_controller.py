@@ -11,7 +11,8 @@ from datetime import datetime
 def simulation_controller(data):
     #print('generating simulation')
     statematrix = generateStateInformation(data)
-    generateSimulationResults(statematrix)
+    cur_progress = checkCurrentProgress(data)
+    generateSimulationResults(statematrix,cur_progress)
     return statematrix
 
 
@@ -74,10 +75,10 @@ def generateStateInformation(data):
                     # if state is from other levels make them observed
                     if key == 'first_level' or key == 'second_level':
                         completed = True
+                        observed = True
                     else:
                         completed = state['completed']
-
-                    observed = state['observed']
+                        observed = state['observed']
 
 
                     #initial_state = state['initial_state']
@@ -96,14 +97,14 @@ def generateStateInformation(data):
                     state.setOutputValues(soutput)
                     state.setObservationStatus(observed)
 
-                    if state.index == 45 or state.index == 46 or state.index == 48  or state.index == 16  or state.index == 66:
+                    if state.index == 82 or state.index == 96 or state.index == 21 or state.index == 38:
                         print('Input read was', state.index, state.name, state.observed, state.completed,last_output,values)
-                        x = 10
+
 
     return statematrix
 
 ####SimulationResults####
-def generateSimulationResults(statematrix):
+def generateSimulationResults(statematrix,cur_progress):
     #print('This generates the simulation for single iteration')
 
     curriteration = 1
@@ -125,8 +126,9 @@ def generateSimulationResults(statematrix):
             if not (is_valid_float(connection)):
                 statevalue = getStateOutputValues(connection, statematrix)#get the last value
                 #get completion status of incoming connections
-                cmp_status = getIncomingCompletionStatus(connection,statematrix,state)
-                inc_completed.append(cmp_status)
+                state_status = getIncomingCompletionStatus(connection,statematrix,state)
+                #print('state_status',state_status['index'], state_status['status'])
+                inc_completed.append(state_status)
                 #print('completion status ', connection, inc_completed)
 
                 stateinput.append(statevalue)
@@ -223,47 +225,62 @@ def generateSimulationResults(statematrix):
 
         date_time = cur_time_stamp.strftime("%Y-%m-%d@%H:%M:%S")
 
-        initial_state = state.isInitialState()
+        #initial_state = state.isInitialState()
         if(np.isnan(nextStateValue)):   #if the results returned NaN then set the value as the last value received
             nextStateValue = state.getOutputValues()
         soutput = StateOutput(date_time, nextStateValue)
         state.setOutputValues(soutput)
         state.setFinalValue(nextStateValue)
 
-        # a state is observed when its fulfilled. Kepping in mind, it is completed by the user only
-        #Criteria incoming complete & observed
+        # a state is observed when it fulfills criteria of threshold. Keeping in mind, it is completed by the user only
+        # a state is observed if all the incoming state are completed at the base level. that is the incoming connections from other levels is considered as observed
 
         sys_completion_status = state.completed
         observedstatus = state.observed
-        if(sys_completion_status != True and observedstatus != True):
-            incoming_completion_from_states = getCompletionStatus(inc_completed)
-            if (incoming_completion_from_states == True):
-                if(state.is_internal):
-                    sys_completion_status = True
-                    observedstatus = True
-                else:
-                    if(nextStateValue > OBS_THRESHOLD):
-                        observedstatus = True
 
-        if(state.is_internal and observedstatus):
+        # if state is internal state and when it observed
+        '''if (state.is_internal and observedstatus):
             sys_completion_status = True
+        else:
+            if (state.is_internal and nextStateValue > OBS_THRESHOLD):
+                observedstatus = True
+                sys_completion_status = True
+        '''
+
+        if (nextStateValue > OBS_THRESHOLD):
+            observedstatus = True
+
+
+
+
+
 
         state.setCompletionStatus(sys_completion_status)
         state.setObservationStatus(observedstatus)
 
+        if state.index == 82 or state.index == 96 or state.index == 21 or state.index == 38:
+            print('state index,name', index, state.name, state.observed, state.completed, nextStateValue,sys_completion_status, inc_completed, state.incomingconnections)
 
-        if state.index == 45 or state.index == 46 or state.index == 48 or state.index == 16 or state.index == 66:
-            print('state index,name', index, state.name, state.observed, state.completed, nextStateValue,sys_completion_status, inc_completed)
-            x = 10
-
-        #print("State user_completed & incoming complete & observed & value", state.name, user_completion_status, incoming_completion_from_states, observedstatus, nextStateValue,state.getOutputValues())
 
 
 
 
     x = 10
 
+def checkCurrentProgress(data):
+    cur_completed_progress = []
+    input = json.loads(data)  # returns dictionary
 
+    for key, progress in input.items():
+        # print(key, ":", value)
+        if (key == 'cur_progress'):
+            for info in progress:
+                cur_list = info["cur_progress"]
+                for states in cur_list:
+                    from_elem = states["from"]
+                    if(from_elem["completed"] == True):
+                        cur_completed_progress.append(from_elem)
+    return cur_completed_progress
 ## support functions
 
 def getCompletionStatus(observedstatusarr):
@@ -294,10 +311,15 @@ def getStateOutputValues(connection, statematrix):
 
 
 def getIncomingCompletionStatus(connection, statematrix,curstate):
-
+    #this function returns the completion status of a state
     index = int(re.findall(r'\d+', connection)[0])
     state = statematrix[index - 1]
+
     completedstatus = state.completed
+    '''elem = {
+       "index": index,
+       "status":observedstatus
+    }'''
     return completedstatus
 
 
@@ -312,8 +334,14 @@ def extractId(id):
     id_array = re.findall(r'\d+', id)
     return int(id_array[0])
 def extractValue(value):
-    value = re.findall(r'[-+]?(?:\d*\.*\d+)', value)
-    return float(value[0])
+    #print('extracting value',value,type(value))
+    if isinstance(value,int) or isinstance(value,float):
+        return float(value)
+    else:
+        if isinstance(value,str):
+            value = re.findall(r'[-+]?(?:\d*\.*\d+)', value)
+            #print('extracted value', value)
+            return float(value[0])
 def extractIncomingConnectionWeights(state,connection_weights, in_connections):
     # input: list of dictionaries
     # returns matrix that constains incoming states
@@ -388,7 +416,7 @@ def extractCFVStructure(combination_functions):
 
 ######## ASSUMPTIONS
 
-OBS_THRESHOLD = 0#0.002
+OBS_THRESHOLD = 0#.002
 
 #########
 class CombiationFunctionStructure:
@@ -1245,7 +1273,7 @@ def transdetavabs(params, values):
 def transdetstdev(params, values):
     return 0
 def monitor(params, values):
-    '''
+    ''' This function takes values and compares them against a threshold
     if v(1) - v(2) >= p(1)  #HCP didnt do well
         x=1
         else if v(1) - v(2) < p(1)  #he did well

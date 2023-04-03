@@ -37,23 +37,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 <h1> Model Monitoring</h1>
 
-<div x-data="{show:false}">
-  <template x-if="show">
-    <div>Show Data if true</div>
-  </template>
-  <button @click="show=!show">Click</button>
-</div>
-
-
-
-<div x-data="monitoringProgress" x-init="startTimer();">
-
-
+<div class="two-columns-grid" x-data="monitoringProgress" x-init="startTimer();">
+<div>
     <!--Base Network Model-->
     <div>
         <template x-for="(progress,pindex) in curProgress" :key="pindex">
             <div>
-                <hr>
                 <!--Iteration <span x-text="pindex"></span>-->
                 <template x-for="(prg,prgindex) in progress.cur_progress" :key="prgindex">
                     <div  x-data="{cur_prg: prg, bstate:prg.from, stateclicked: prg.from, istostate:false}">
@@ -61,12 +50,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             <tr>
                                 <td>
                                     <div x-show="true"> <!--"!bstate.is_internal"-->
-                                        <button id="bstate.id" x-text="bstate.id+':'+bstate.name + bstate.observed + bstate.completed"  type="button"
+                                        <button id="bstate.id" x-text="bstate.id+':'+bstate.name"  type="button"
                                             @click="recordFromAction(cur_prg);"
                                             class="button button4"
-                                            :class="{ 'bg-green-500':  (bstate.completed),
-                                                      'bg-yellow-300' : (bstate.observed),
-                                                      'bg-neutral-300': (!bstate.completed && !bstate.observed)}">
+                                            :class="{ 'bg-green-500':  (bstate.completed)}">
                                             <!--:disabled="!bstate.monitoringstate">-->
                                         </button>
                                     </div>
@@ -90,6 +77,14 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 </div>
 
 
+    <div>
+    <h1>Status and Log</h1>
+    <p>
+        <!--<span x-text="status_log"></span>-->
+        <span x-html="status_log.replaceAll('\n', '<br>')"></span>
+    </p>
+    </div>
+</div>
 <!--{{ data}}-->
 
 
@@ -122,6 +117,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             language:'nl-NL',
             iteration:0,
             goTimer:true,  // should the timer method be called?
+            status_log:'Welcome!  \n ', // this contains a string which will contain all the messages to speak and record
 
 
 
@@ -130,19 +126,20 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             recordFromAction(cur_prg){
             /*
-                    This function is called when a from element is clicked
+                    This function is called when a from element is clicked. Functionality is implemented for the for elements of the element cur_prg.
                     Input: current progress (cur_prg) and state (bstate)
-                    Assumptions: State is not an internal state.
-                    Output: 1. State is marked as observed, if it is not observed before
+                    Pre-Processing: States shown are not internal states. The states are either
+                        1. initial states, or
+                        2. observed states
+                    Processing:
+                        1. state is marked as completed, if it is not completed before and it is initial state
+                        2. if 1 is not satisfied then all incoming connections are checked for completion and then it is marked as completed
 
+                    Output: 1. State is marked as completed.
                 */
-                //console.log('recordFromAction - before updation - base level network', this.incomingBaseLevelNetwork)
-
-                console.log('current progress,state clicked',cur_prg);
 
                 from_elem = cur_prg.from
-                //console.log('from_elem', from_elem);
-                //1.a. set the state as observedd
+                //1.a. set the state as completed
                 // preliminary checks
                 //1.a.a. if the state is already observedd
 
@@ -151,15 +148,108 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     console.log('state is already completed')
                     return
                 }
+                //1.a.b. if the state is an initial state then it is marked as completed and observed
+                if(from_elem.initial_state)
+                {
+                   from_elem.observed = true
+                   from_elem.completed = true
+                   idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === from_elem.id)
+                   if(idx > -1)
+                   {
+                        this.incomingBaseLevelNetwork[idx].state.observed = true
+                        this.incomingBaseLevelNetwork[idx].state.completed = true
+                   }
+                   this.status_log = 'You just completed ' + from_elem.name + '\n'
+                }
+                else
+                {
+                   incoming_status = this.isIncomingComplete(from_elem)
+                   //console.log('incoming_status',from_elem, incoming_status)
+                   //then state is marked as complete otherwise it is checked for loops and notifications are sent
+                    //if incoming status is completed from all states (i.e., final_status == true)
 
-                from_elem.observed = true
-                from_elem.completed = true
+                    final_status = false
 
-                return
+                    if(incoming_status.length > 0)
+                    {
+                           idx = incoming_status.findIndex(e => e.completed == false)
+                            if(idx > -1)
+                                final_status = false
+                            else
+                                final_status = true
+                    }
+
+
+                   //console.log('final_status',final_status)
+                   if(final_status == true)
+                   {
+                      from_elem.completed = true
+                      this.status_log = 'You just completed ' + from_elem.name + '\n'
+                   }
+                   else
+                   {
+                      //state is checked for loops and notifications are sent
+                      //console.log('final_status',incoming_status,typeof final_status)
+                      this.status_log = ''
+
+                      //loop_incomplete is for self referencing,
+                      //if there is a loop, then it makes the from element complete otherwise check for notifications
+                      loop_incomplete = []
+                      incomplete = []
+                      for(var i = 0; i < incoming_status.length; i++)
+                      {
+                        //if(incoming_status[i].is_complete == false)
+                        if(incoming_status[i].completed == false)
+                        {
+                            //if there is a loop, then it makes the from element complete
+                            isloop = this.checkforLoop(incoming_status[i],from_elem)
+                            //console.log('isloop',isloop,incoming_status[i],from_elem)
+                            if(isloop == true)
+                            {
+                                loop_incomplete.push(incoming_status[i])
+                            }
+                            else
+                            {
+                                incomplete.push(incoming_status[i])
+                            }
+                        }
+                      }
+                      //check if the rest of the states are complete then make it complete
+                      if(loop_incomplete.length > 0 && incomplete.length == 0)
+                      {
+                        from_elem.completed = true
+                        console.log('from_elem',from_elem)
+                        this.status_log = 'You just completed ' + from_elem.name + '\n'
+                      }
+                      else
+                      {
+                        for(var i = 0; i < incomplete.length; i++)
+                        {
+                            this.status_log = this.status_log + ' ' + incomplete[i].name
+                                              + ' is not complete yet. \n'
+                        }
+                        this.status_log = this.status_log + 'Did you forget clicking the state(s) \n'
+                      }
+                   }
+                }
+
+                console.log('status_log: ',this.status_log)
+
             },
 
             //////////////////////////supporting methods
 
+            checkforLoop(stateinfo,from_elem){
+                //This function checks for loop, and returns true or false
+
+                console.log('stateinfo', stateinfo)
+                in_connection = stateinfo.in_connection
+                idx = in_connection.findIndex(e => e.value == from_elem.id)
+                if(idx > -1)
+                    return true
+                else
+                    return false
+            },
             startTimer() {
             /* This function will recieve the data from backend continously, untill the whole protocol is completed*/
 
@@ -168,139 +258,50 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                      this.getStatusUpdate()
                     }
                 }, 10000);
-
-
-            /*  OLD : this function will start to check if current progress is completed, if all progress is completed
-                then it will show a button to show the next element
-
-
-                    setInterval(() => {
-                        if (this.goTimer == true) {
-                            idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.observed == false);
-                            if(idx > -1) {
-                                console.log('killing timer');
-                                this.gotTimer = false;
-                            }
-                            else{
-                                this.showNextProgressElement()
-                            }
-
-                        }
-                    }, 1000);*/
             },
 
-            showNextProgressElement(){
-                /* This function is called when all states in curProgress are observed
-                    it gets the next progress element based upon the clicked state.
-                    1. check the status of incoming elements and then show the next element
-                    //this.completeProgressOfNetwork[this.iteration] = {progress: progress}
+            isIncomingComplete(from_elem)
+            {   //TO-DO: Check Incoming Connections
+                /*  This function checks all incoming states,
+                    if all states are completed. It returns a structure with state name and status.
                 */
 
-                //cur_prg = this.curProgress[this.iteration].cur_progress
-                rem_prg = this.remProgress[this.iteration].rem_progress
+                index = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == from_elem.id)
+                if(index < 0)
+                    return false
 
-                //console.log('showNextElement',rem_prg);
-                //1. update the current progress
-
-                //1.a. get incoming connection information
-                if(rem_progress.length == 0)
-                {
-                    this.gotTimer = false;
-                    return
-                }
-
-                first_rem_element = this.remProgress[this.iteration].rem_progress[0]
-
-                console.log('Remaining and Incoming',this.remProgress[this.iteration], first_rem_element,this.incomingBaseLevelNetwork)
-                idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id === first_rem_element.from.id )
-                console.log('idx',idx)
-                if (idx > -1)
-                {
-                    causal_impact = this.checkCausalImpact(idx)
-                    if (causal_impact)
-                    {
-
-                        //1.a.a. update this element into curProgress and remove it from remProgress
-                        this.curProgress[this.iteration].cur_progress.push(first_rem_element)
-
-                        this.remProgress[this.iteration].rem_progress.splice(0, 1)  // remove first element only
-                        console.log('cur_progress',first_rem_element, causal_impact, this.curProgress[this.iteration].cur_progress,this.remProgress[this.iteration].rem_progress)
-                   }
-                   else
-                   {
-                        //console.log('causal impact is false',this.incomingBaseLevelNetwork[idx].state)
-                   }
-                }
-            },
-
-            checkCausalImpact(index)
-            {   //TO-DO: CHECK IT
-                /*  This function checks the causal impacts of all incoming states,
-                    if all states are observed, then it can return true.
-                */
                 final_status = false
                 cur_status = []
                 incoming_ids = this.incomingBaseLevelNetwork[index].state.in_connection
                 for (var i = 0; i < incoming_ids.length; i++){
                     id_value = incoming_ids[i].value
-                    //check if the incoming state is observed
-                    pidx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id === id_value)
-                    console.log('check causal impact of pidx', pidx,id_value)
-                    if(pidx > -1){
-                        //state is found.
-                        //save the status
-                        state = this.curProgress[this.iteration].cur_progress[pidx]
-                        status = state.observed
-                        status = (status === 'true');
-
-                        /*if(status !== true || status != false)
+                    //ignore self-referencing
+                    if(id_value != from_elem.id){
+                        //check if the incoming state is observed
+                        //Either it is present in currProgress, or it is present in incomingBaseLevelNetwork
+                        pidx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id === id_value)
+                        if(pidx > -1){
+                            //state is found. Save status
+                            state = this.curProgress[this.iteration].cur_progress[pidx]
+                            //cur_status.push({state_id: state.from.id, state_name:state.from.name, is_complete: state.from.completed})
+                            cur_status.push(state.from)
+                        }
+                        else
                         {
+                            //check incomingBaseLevelNetwork for inner states and higher level states
                             iidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == id_value)
                             if(iidx > -1)
                             {
-                                console.log('this.incomingBaseLevelNetwork',this.incomingBaseLevelNetwork[iidx])
-                                incstate = this.incomingBaseLevelNetwork[iidx].state
-                                status = incstate.complete
+                                //console.log('this.incomingBaseLevelNetwork',this.incomingBaseLevelNetwork[iidx])
+                                state = this.incomingBaseLevelNetwork[iidx].state
+                                //cur_status.push({state_id: state.id, state_name:state.name, is_complete: state.completed})
+                                cur_status.push(state)
                             }
-                        }*/
-
-
-                        cur_status.push({iscomplete: status})
-                        console.log("State", state, this.curProgress[this.iteration].cur_progress[pidx])
-                    }
-                    else
-                    {
-                        //check incomingBaseLevelNetwork for status
-                        iidx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == id_value)
-                        if(iidx > -1)
-                        {
-                            console.log('this.incomingBaseLevelNetwork',this.incomingBaseLevelNetwork[iidx])
-                            state = this.incomingBaseLevelNetwork[iidx].state
-                            status = (status === 'true');
-                            cur_status.push({iscomplete: status})
                         }
-
                     }
-
-
-                }
-                console.log("status array",cur_status)
-                if(cur_status.length > 0)
-                {
-                    idx = cur_status.findIndex(e => e.iscomplete == false)
-                    if(idx > -1)
-                        final_status = true
-                    else
-                        final_status = false
-
                 }
 
-                //console.log('final_status',final_status,index)
-
-                return final_status
-
-
-
+                return cur_status
             },
 
             //async
@@ -335,7 +336,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     if(values.length > 1)   //at index 0 there is no value; used for structure only //pick the last element
                     {
                         cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
-                        console.log('Last value',incomingstate,cur_value)
+                        //console.log('Last value',incomingstate,cur_value)
                     }
                     else
                     {
@@ -370,7 +371,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 {
                     incomingstate = this.secondOrderLevelNetwork[i].state
                     values = incomingstate.values
-                    console.log('values.length',values.length)
+                    //console.log('values.length',values.length)
                     if(values.length > 1)   //at index 0 there is no value; used for structure only //pick the last element
                     {
                         cur_value = incomingstate.values[incomingstate.values.length - 1].cur_value
@@ -433,7 +434,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     base_level: this.incomingBaseLevelNetwork,
                     first_level: this.firstOrderLevelNetwork,
                     second_level: this.secondOrderLevelNetwork,
-                    last_progress: this.completeProgressOfNetwork
+                    last_progress: this.completeProgressOfNetwork,
+                    cur_progress: this.curProgress
                 },
                 headers: {//'Content-Type': 'application/json',
                            'X-CSRFToken': csrftoken},
@@ -450,8 +452,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 }, (error) => {
                     console.log(error.response.data);
                 });
-
-                console.log('sending data to server', out_data)
             },
 
             async getStatusUpdate(){
@@ -461,7 +461,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     2. first it sends the current data to the server, and then it receives the data
             */
 
-                console.log("status update called")
+                //console.log("status update called")
                 idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.observed == true)
                 //1. It doesn't proceed if there is no state clicked at all
                 if(idx <= -1)
@@ -503,7 +503,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                     complete_prg = this.completeProgressOfNetwork[this.iteration].progress
 
-                    console.log('last_progress',r_last_progress)
+                    //console.log('last_progress',r_last_progress)
                     //console.log('complete_prg',complete_prg)
                     //console.log('this.curProgress[this.iteration]',this.curProgress[this.iteration])
 
@@ -514,13 +514,32 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         //updation of status in currentProgress
                         complete_prg[i].from.observed = from_elem.observed
 
+
+                        //if element is not complete but is observed in the software, update current progress to include it
                         if(!from_elem.completed && from_elem.observed)
                         {
                             //If element is not already in the curProgress then add the element to the current progress
                             this.updateProgress(from_elem,complete_prg)
-
-                            console.log('updateProgress returned',from_elem,complete_prg,this.incomingBaseLevelNetwork);
                         }
+
+                        //still, if all incoming elements are completed then show element in progress
+
+                        incoming_status = this.isIncomingComplete(from_elem)
+                        //console.log('incoming_status',from_elem.name,incoming_status)
+
+                       if(incoming_status.length > 0)
+                       {
+                           iidx = incoming_status.findIndex(e => e.completed == false)
+                            if(iidx < 0)
+                                this.updateProgress(from_elem,complete_prg)
+                       }
+
+
+
+
+
+
+
 
                         //TODO: update fout status if there are to elemets in parallel
                         //updation of status
@@ -554,7 +573,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         if(!from_elem.is_internal)
                         {
                             idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
-                            console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
+                            //console.log('CURRR idx',idx, this.curProgress[this.iteration].cur_progress)
                             if(idx < 0)
                             {
                                 //check the element from complete progress
@@ -571,7 +590,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                 {
                                     elem = this.remProgress[this.iteration].rem_progress[ridx]
                                     this.remProgress[this.iteration].rem_progress.splice(ridx, 1)  // remove one element only
-                                    console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
+                                    //console.log("removed element",elem,this.remProgress[this.iteration].rem_progress)
                                 }
                             }
                         }
@@ -607,7 +626,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             //////////////////////Supporting Methods
 
 
-            getToElementsofaState(state, produce = true){
+            getToElementsofaState(state_id){
                   /*
                   this function returns the to elements of a state
                   Input: state
@@ -618,7 +637,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                   */
                 //console.log('PRODUCE',produce);
                 progress = []
-                nextidx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === state.id )
+                nextidx = this.outgoingBaseLevelNetwork.findIndex(e => e.from.id === state_id )
                 //console.log('state,nextidx',state,nextidx)
                 if(nextidx > -1)
                 {
@@ -638,12 +657,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         //create new entry and update its status
                         elem = this.outgoingBaseLevelNetwork[idx]
                         entry = this.createNewEntry(elem)
-                        //console.log('entry =',entry,produce,this.iteration)
 
-                        if(produce)
-                        {
-                            this.completeProgressOfNetwork[this.iteration].progress.push(entry)
-                        }
                     }
                     else
                     {
@@ -653,7 +667,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         {
 
                             from = this.createNewElement(from_state)
-                            //console.log('LASTTTTTTTTTTTT STATE:', from_state,produce)
+
                             //if last state is klaar, mark it as observedd
                             from.observed = true
                             from.completed = true
@@ -662,9 +676,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                 from: from,
                                 to: to
                             }
-
-                            if(produce)
-                                this.completeProgressOfNetwork[this.iteration].progress.push(entry)
                         }
                     }
                   }
@@ -723,10 +734,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                  // 4. initialization of completeProgressOfNetwork
                  this.initializeProgress()
-
-
-
-
             },//init
 
             initializeProgress()
@@ -819,7 +826,15 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     initial_state = this.isInitialState(elem)
 
                     from_elem = this.createNewElement(elem)
+
+                    //setting as initial state status
                     from_elem.initial_state = initial_state
+                    inc_idx = this.incomingBaseLevelNetwork.findIndex(e => e.state.id == from_elem.id)
+                    if(inc_idx > -1)
+                    {
+                        this.incomingBaseLevelNetwork[inc_idx].state.initial_state = initial_state
+                    }
+
 
                     //generating to elements
                     elem = this.individualBaseLevelOutConnections[index].to
@@ -1004,24 +1019,34 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                    return incoming_states
           },
 
+          adjustConnectionWeights(connection_weights){
+            //This function is used to set the connection weights as absolute values
+
+            //console.log('weights',connection_weights)
+            for(var i = 0; i < connection_weights.length; i++)
+            {
+                if(connection_weights[i].value < 0)
+                {
+                    connection_weights[i].value = Math.abs(connection_weights[i].value)
+                }
+            }
+            return connection_weights
+          },
+
           //Creating a new element, to avoid replicas
           createNewElement(element){
               if(element)
               {
                     //convert strings if any to boolean
                     var completed = (element.completed === 'true');
-                    /*is_internal = false
-                    if(element.is_internal == 'true' || element.is_internal == true)
-                        is_internal = true
-
-                    */
+                    connection_weights = this.adjustConnectionWeights(element.connection_weights)
 
                     elem = {
                     id: element.id,
                     name: element.name,
                     user_name: element.user_name,
                     combination_functions:element.combination_functions,
-                    connection_weights: element.connection_weights,
+                    connection_weights: connection_weights,
                     in_connection: element.in_connection,
                     init_value: element.init_value,
                     show_param_btn: element.show_param_btn,

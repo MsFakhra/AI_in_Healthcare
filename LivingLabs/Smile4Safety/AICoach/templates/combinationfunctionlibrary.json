@@ -474,5 +474,12 @@
    "fullname": "XXXX",
    "numberOfPossibleParams": 0,
    "paramNames": "NONE"
+ },
+  {
+   "id": 69,
+   "name": "monitor",
+   "fullname": "monitoring state",
+   "numberOfPossibleParams": 1,
+   "paramNames": "threshold"
  }
 ]

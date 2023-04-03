@@ -209,8 +209,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         <td colspan="2">
                                             <div>
                                                 <br>
-                                                <button x-on:click="addSecondLevelState()" class="btn btn-success"> Add a state here </button>
-                                                <button x-on:click="removeSecondLevelState()" class="btn btn-danger"> Remove last state </button>
+                                                <button x-on:click="addSecondLevelState()" class="btn btn-success" x-show="showAddStateatSL"> Add a state here </button>
+                                                <button x-on:click="removeSecondLevelState()" class="btn btn-danger" x-show="showAddStateatSL"> Remove last state </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -651,6 +651,7 @@ F: combination function structure:
  showBaseModel:false,
  showFirstAddButton: true,
  showAddStateatFL:false,
+ showAddStateatSL:false,
  showSecondAddButton:false,
  showSecondRemoveButton:false,
  //combination function library
@@ -1018,12 +1019,9 @@ addFirstAdaptionLevel(){
             show_params:false
             }
 
-        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''}],connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                     , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-        /*this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
     }
 
 },
@@ -1046,13 +1044,9 @@ addFirstLevelState(){
             show_params:false
             }
 
-    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+    this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                 , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-
-    /*this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
 
     //reset second layer
     len = this.firstOrderLevel.length
@@ -1201,6 +1195,7 @@ addSecondAdaptionLevel(){
     this.showFirstAddButton = false
     this.showSecondAddButton = false
     this.showSecondRemoveButton = true
+    this.showAddStateatSL = true
 
     lastindex = this.firstOrderLevel[this.firstOrderLevel.length-1]['id']
     thenum =  lastindex.match(/\d+/)[0]
@@ -1218,12 +1213,10 @@ addSecondAdaptionLevel(){
             show_params:false
             }
 
-        this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+        this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                     , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-        /*this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
+
     }
 
 },
@@ -1245,12 +1238,9 @@ addSecondLevelState(){
          show_params:false
     }
 
-    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                 , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-    /*this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
 },
 
 removeSecondLevelState(){

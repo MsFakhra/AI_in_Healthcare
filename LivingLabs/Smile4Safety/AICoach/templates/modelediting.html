@@ -204,8 +204,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         <td colspan="2">
                                             <div>
                                                 <br>
-                                                <button x-on:click="addSecondLevelState()" class="btn btn-success"> Add a state here </button>
-                                                <button x-on:click="removeSecondLevelState()" class="btn btn-danger"> Remove last state </button>
+                                                <button x-on:click="addSecondLevelState()" class="btn btn-success" x-show="showAddStateatSL"> Add a state here </button>
+                                                <button x-on:click="removeSecondLevelState()" class="btn btn-danger" x-show="showAddStateatSL"> Remove last state </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -480,7 +480,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
                         <!--first level model-->
-                        <template x-for="(fstate,findex) in firstOrderLevel" :key="findex">
+                        <template x-for="(fstate,flindex) in firstOrderLevel" :key="flindex">
                             <tr class="firstlevel">
                                 <td>
                                     <span x-bind:placeholder="fstate.id" x-text="fstate.id"></span>
@@ -494,10 +494,9 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                     <template x-for="(ffunc,ffindex) in fstate.combination_functions" :key="ffindex">
                                         <table>
                                             <tr>
-                                                <td><span x-text="ffunc.full_name"></span></td>
                                                 <td>
-                                                    <select class="form-select" x-model="ffunc.id" x-on:change="showandSetFLParameter(findex,ffindex)">
-                                                        <option value="ffunc.id" x-text="func.full_name" selected></option>
+                                                    <select class="form-select" x-model="ffunc.id" x-on:change="showandSetFLParameter(flindex,ffindex)">
+                                                        <option value="ffunc.id" x-text="ffunc.full_name" selected></option>
                                                         <template x-for = "cof in combinationfuncs">
                                                             <option :value="cof.id" x-text = "cof.fullname"></option>
                                                         </template>
@@ -534,8 +533,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                         <div x-show="fstate.show_param_btn">
                                             <span x-text="'Add another function to state ' +  fstate.id"></span>
                                             <br>
-                                            <button x-on:click="addFLevelCombinationFunction(findex)" class="btn btn-success"> + </button>
-                                            <button x-on:click="removeFLevelCombinationFunction(findex)" class="btn btn-danger"> - </button>
+                                            <button x-on:click="addFLevelCombinationFunction(flindex)" class="btn btn-success"> + </button>
+                                            <button x-on:click="removeFLevelCombinationFunction(flindex)" class="btn btn-danger"> - </button>
                                         </div>
                                     </td>
 
@@ -646,8 +645,9 @@ F: combination function structure:
  name:'',
  numberOfStates: 2,
  showBaseModel:false,
- showFirstAddButton: true,
- showAddStateatFL:false,
+ showFirstAddButton: false,
+ showAddStateatFL:true,
+ showAddStateatSL:true,
  showSecondAddButton:false,
  showSecondRemoveButton:false,
  //combination function library
@@ -778,10 +778,8 @@ addBaseCombinationFunction(bindex){
 },
 
 removeBaseCombinationFunction(bindex){
-console.log('remove bcf')
-len = this.baseLevel[bindex].combination_functions.length
-console.log(len)
-  if (len > 1)
+    len = this.baseLevel[bindex].combination_functions.length
+    if (len > 1)
    {
         this.baseLevel[bindex].combination_functions.splice(-1,1)
 
@@ -855,8 +853,8 @@ console.log(len)
     this.layer1 = false
     this.layer2 = false
     this.showFirstAddButton = true
-    this.showSecondAddButton=false
     this.showSecondRemoveButton=false
+
 },
 
 removeBaseState()
@@ -894,7 +892,7 @@ removeBaseState()
 
 addFLevelCombinationFunction(sindex){
 //add combination function at first level
-    cfuncobjarray = {
+   cfuncobjarray = {
         id:'0',
         name:'',
         full_name:'',
@@ -903,6 +901,7 @@ addFLevelCombinationFunction(sindex){
         parameters:[{name:'', value:''},{name:'', value:''}],
         show_params:false
     }
+
     this.firstOrderLevel[sindex].combination_functions.push(cfuncobjarray)
     this.firstOrderLevel[sindex].show_param_btn = false
 
@@ -931,7 +930,7 @@ showandSetFLParameter(sindex,findex)
     this.show_params = true
 
     id = this.firstOrderLevel[sindex].combination_functions[findex].id
-    console.log('FLfuncname',his.firstOrderLevel[sindex].combination_functions[findex].name)
+    //console.log('FLfuncname',this.firstOrderLevel[sindex].combination_functions[findex].name)
 
 
     //searching function from json file
@@ -960,7 +959,7 @@ showandSetFLParameter(sindex,findex)
                     parameters:adjustedparams,
                     show_params:false
                 }
-            console.log(this.combinationfuncs[i], cfuncobjarray,this.firstOrderLevel[sindex])
+            //console.log(this.combinationfuncs[i], cfuncobjarray,this.firstOrderLevel[sindex])
             this.firstOrderLevel[sindex].combination_functions[findex] = cfuncobjarray
 
             //this.firstOrderLevel[sindex].combination_functions[findex].parameters = adjustedparams
@@ -995,12 +994,9 @@ addFirstAdaptionLevel(){
             parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
             show_params:false
             }
-        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+        this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''}],connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                     , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-        /*this.firstOrderLevel.push({id: 'X' + index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}],connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
     }
 
 },
@@ -1023,14 +1019,10 @@ addFirstLevelState(){
             show_params:false
             }
 
-     this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+     this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                 , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
 
-    /*this.firstOrderLevel.push({id: 'X'+ idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })
-                        */
 
     //reset second layer
     len = this.firstOrderLevel.length
@@ -1209,13 +1201,9 @@ addSecondAdaptionLevel(){
             show_params:false
             }
 
-          this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+          this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                     , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-        /*this.secondOrderLevel.push({id: 'X'+ index, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                    , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
-
     }
 
 },
@@ -1236,12 +1224,9 @@ addSecondLevelState(){
          parameters:[{name:'order', value:0},{name:'scaling factor', value:0}],
          show_params:false
     }
-    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
+    this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''}], connection_weights:[{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
                                 , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
                         })
-    /*this.secondOrderLevel.push({id: 'X'+idvalue, name: '', user_name: '', in_connection: [{value:''},{value:''},{value:''}], connection_weights:[{value:''},{value:''},{value:''}],speed:0.0, init_value:0.0,combination_functions:[cfuncobjarray]
-                                , message:'',completed:false, sentiment_lbl: 'Positive', is_internal:true,  values:[{cur_value:0.0, time_stamp:0}]
-                        })*/
 },
 
 removeSecondLevelState(){
@@ -1316,11 +1301,7 @@ save() {
         data: {
             id: this.id,
             name: this.name,
-            stateMatrix: this.stateMatrix//,
-            //baseLevel: this.baseLevel,
-            //firstOrderLevel: this.firstOrderLevel,
-            //secondOrderLevel: this.secondOrderLevel
-
+            stateMatrix: this.stateMatrix
         },
         headers: {//'Content-Type': 'application/json',
                    'X-CSRFToken': csrftoken},
