@@ -136,6 +136,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         2. if 1 is not satisfied then all incoming connections are checked for completion and then it is marked as completed
 
                     Output: 1. State is marked as completed.
+                            2. Audio is played for the status
                 */
 
                 from_elem = cur_prg.from
@@ -145,7 +146,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 if(from_elem.completed)
                 {
-                    console.log('state is already completed')
+                    this.status_log = 'Taak is al als voltooid gemarkeerd \n'
+                    this.playPositiveTone(this.status_log)
                     return
                 }
                 //1.a.b. if the state is an initial state then it is marked as completed and observed
@@ -159,7 +161,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         this.incomingBaseLevelNetwork[idx].state.observed = true
                         this.incomingBaseLevelNetwork[idx].state.completed = true
                    }
-                   this.status_log = 'You just completed ' + from_elem.name + '\n'
+                   this.status_log = 'Je hebt zojuist' + from_elem.name + ' afgerond\n'
+                   this.playPositiveTone(this.status_log)
                 }
                 else
                 {
@@ -184,12 +187,12 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                    if(final_status == true)
                    {
                       from_elem.completed = true
-                      this.status_log = 'You just completed ' + from_elem.name + '\n'
+                      this.status_log = 'Je hebt zojuist ' + from_elem.name + ' afgerond \n'
+                      this.playPositiveTone(this.status_log)
                    }
                    else
                    {
                       //state is checked for loops and notifications are sent
-                      //console.log('final_status',incoming_status,typeof final_status)
                       this.status_log = ''
 
                       //loop_incomplete is for self referencing,
@@ -219,25 +222,75 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       {
                         from_elem.completed = true
                         console.log('from_elem',from_elem)
-                        this.status_log = 'You just completed ' + from_elem.name + '\n'
+                        this.status_log = 'Je hebt zojuist ' + from_elem.name + ' afgerond. \n'
+                        this.playPositiveTone(this.status_log)
                       }
                       else
                       {
                         for(var i = 0; i < incomplete.length; i++)
                         {
                             this.status_log = this.status_log + ' ' + incomplete[i].name
-                                              + ' is not complete yet. \n'
+                                              + ' is nog niet compleet. \n'
                         }
-                        this.status_log = this.status_log + 'Did you forget clicking the state(s) \n'
+                        if(incomplete.length == 1)
+                            this.status_log = this.status_log + 'Ben je vergeten op de staat te klikken? \n'
+                        else
+                            this.status_log = this.status_log + 'Ben je vergeten op de staten te klikken? \n'
+                        this.playNegativeTone(this.status_log)
                       }
                    }
                 }
 
                 console.log('status_log: ',this.status_log)
 
+
             },
 
             //////////////////////////supporting methods
+            playNegativeTone(message){
+                //This method is used to change pitch
+                pitch = 0.9
+                rate = 0.7
+                this.play(message,pitch,rate)
+            },
+
+            playPositiveTone(message){
+                //This method is used to change pitch
+                pitch = 0.8
+                rate = 0.85
+                this.play(message,pitch,rate)
+            },
+            play(str, pitch,rate){
+                        /*Text to speech
+                link used: https://usefulangle.com/post/98/javascript-text-to-speech
+            */
+              //return
+              console.log('pitch',pitch);
+              if ('speechSynthesis' in window) {
+                let speech = new SpeechSynthesisUtterance(str);
+                speech.lang = this.language;
+                speech.pitch = pitch;
+                speech.rate = rate;
+
+                window.speechSynthesis.speak(speech);
+              }
+              else{
+                document.write("Browser not supported")
+              }
+              //this.sleep(10000)
+              return
+            },
+
+            sleep(ms)
+            {
+                //function used to put delay
+                var start = new Date().getTime();
+                for (var i = 0; i < 1e7; i++) {
+                 if ((new Date().getTime() - start) > ms){
+                   break;
+                 }
+               }
+            },
 
             checkforLoop(stateinfo,from_elem){
                 //This function checks for loop, and returns true or false
