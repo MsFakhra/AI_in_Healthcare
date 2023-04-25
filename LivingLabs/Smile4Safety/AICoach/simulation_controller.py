@@ -97,8 +97,8 @@ def generateStateInformation(data):
                     state.setOutputValues(soutput)
                     state.setObservationStatus(observed)
 
-                    if state.index == 82 or state.index == 96 or state.index == 21 or state.index == 38:
-                        print('Input read was', state.index, state.name, state.observed, state.completed,last_output,values)
+                    if state.index == 10:
+                        print('Input read was', state.index, state.name, state.observed, state.completed,state.is_internal)
 
 
     return statematrix
@@ -250,6 +250,9 @@ def generateSimulationResults(statematrix,cur_progress):
         if (nextStateValue > OBS_THRESHOLD):
             observedstatus = True
 
+        if (state.is_internal):
+            sys_completion_status = True
+
 
 
 
@@ -258,8 +261,9 @@ def generateSimulationResults(statematrix,cur_progress):
         state.setCompletionStatus(sys_completion_status)
         state.setObservationStatus(observedstatus)
 
-        if state.index == 82 or state.index == 96 or state.index == 21 or state.index == 38:
-            print('state index,name', index, state.name, state.observed, state.completed, nextStateValue,sys_completion_status, inc_completed, state.incomingconnections)
+        if state.index == 10:
+            print('Output', state.index, state.name, state.observed, state.completed, state.is_internal)
+        #    print('state index,name', index, state.name, state.observed, state.completed, nextStateValue,sys_completion_status, inc_completed, state.incomingconnections)
 
 
 
@@ -416,7 +420,7 @@ def extractCFVStructure(combination_functions):
 
 ######## ASSUMPTIONS
 
-OBS_THRESHOLD = 0#.002
+OBS_THRESHOLD = 0.04#.002
 
 #########
 class CombiationFunctionStructure:

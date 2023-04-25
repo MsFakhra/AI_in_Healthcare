@@ -32,12 +32,19 @@ b.	If there is a ‘Not Observed’ state (i.e., value = 0), we skip the states 
 {% csrf_token %}
 <script>
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+/*function googleTranslateElementInit() {
+  new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+  }*/
+
 </script>
 
 
+
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 <h1> Model Monitoring</h1>
 
-<div class="two-columns-grid" x-data="monitoringProgress" x-init="startTimer();">
+<div class="three-columns-grid" x-data="monitoringProgress" x-init="startTimer();">
 <div>
     <!--Base Network Model-->
     <div>
@@ -84,6 +91,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         <span x-html="status_log.replaceAll('\n', '<br>')"></span>
     </p>
     </div>
+    <div>
+        <span>Please select the language</span>
+        <div id="google_translate_element" x-model="language" align="right"></div>
+    </div>
 </div>
 <!--{{ data}}-->
 
@@ -127,7 +138,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             recordFromAction(cur_prg){
             /*
                     This function is called when a from element is clicked. Functionality is implemented for the for elements of the element cur_prg.
-                    Input: current progress (cur_prg) and state (bstate)
+                    Input: current progress (cur_prg)
                     Pre-Processing: States shown are not internal states. The states are either
                         1. initial states, or
                         2. observed states
@@ -201,7 +212,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       incomplete = []
                       for(var i = 0; i < incoming_status.length; i++)
                       {
-                        //if(incoming_status[i].is_complete == false)
+                        if(incoming_status[i].is_internal) //ensuring that internal state is always completed
+                            incoming_status[i].completed = true
                         if(incoming_status[i].completed == false)
                         {
                             //if there is a loop, then it makes the from element complete
@@ -227,6 +239,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       }
                       else
                       {
+                        console.log('from_elem',from_elem)
                         for(var i = 0; i < incomplete.length; i++)
                         {
                             this.status_log = this.status_log + ' ' + incomplete[i].name
@@ -240,13 +253,85 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       }
                    }
                 }
-
-                console.log('status_log: ',this.status_log)
+                if(from_elem.completed)
+                {
+                    this.swapElements(from_elem)
+                }
+                //console.log('status_log: ',this.status_log)
 
 
             },
 
             //////////////////////////supporting methods
+
+            swapElements(from_elem){
+                //this function swaps the recently completed element with the first observed element
+
+                idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
+                if(idx > -1)    //finding element in current progress
+                {
+                    //find the first observed element
+                    cur_prg = this.curProgress[this.iteration].cur_progress
+                    found_Id = cur_prg.findIndex(e => e.from.completed == false);
+                    if(found_Id > -1)   //finding index of first element which is not completed
+                    {
+                        console.log('element not completed at index',found_Id)//this.curProgress[this.iteration].cur_progress[found_Id],
+                        if (idx > found_Id) // this means it needs swapping
+                        {
+
+                            a_from = this.createNewElement(this.curProgress[this.iteration].cur_progress[found_Id].from)
+                            a_from.observed = true
+                            if(this.curProgress[this.iteration].cur_progress[found_Id].from.is_internal){
+                                a_from.completed = true
+                                //console.log('Internal element',this.curProgress[this.iteration].cur_progress[found_Id].from.name, a_from)
+                            }
+
+                            b_from = this.createNewElement(this.curProgress[this.iteration].cur_progress[idx].from)
+                            b_from.observed = true
+                            b_from.completed = true
+
+                            this.copyElement(b_from,found_Id)
+                            this.copyElement(a_from,idx)
+                        }
+
+                        return
+                    }
+                }
+                return
+            },
+
+            copyElement(element,index)
+            {
+                this.curProgress[this.iteration].cur_progress[index].from.id = element.id
+                this.curProgress[this.iteration].cur_progress[index].from.name = element.name
+                this.curProgress[this.iteration].cur_progress[index].from.initial_state = element.initial_state
+                this.curProgress[this.iteration].cur_progress[index].from.is_internal = element.is_internal
+
+                if(element.is_internal)
+                {
+                    console.log('Copying',this.curProgress[this.iteration].cur_progress[index].from,element)
+                    this.curProgress[this.iteration].cur_progress[index].from.completed = true
+                }
+                else
+                {
+                    this.curProgress[this.iteration].cur_progress[index].from.completed = element.completed
+                }
+
+                this.curProgress[this.iteration].cur_progress[index].from.observed = element.observed
+                this.curProgress[this.iteration].cur_progress[index].from.user_name = element.user_name
+                this.curProgress[this.iteration].cur_progress[index].from.values = element.values
+
+                this.curProgress[this.iteration].cur_progress[index].from.init_value = element.init_value
+                this.curProgress[this.iteration].cur_progress[index].from.in_connection = element.in_connection
+                this.curProgress[this.iteration].cur_progress[index].from.combination_functions = element.combination_functions
+                this.curProgress[this.iteration].cur_progress[index].from.connection_weights = element.connection_weights
+                this.curProgress[this.iteration].cur_progress[index].from.speed = element.speed
+
+                this.curProgress[this.iteration].cur_progress[index].from.message = element.message
+                this.curProgress[this.iteration].cur_progress[index].from.sentiment_lbl = element.sentiment_lbl
+                this.curProgress[this.iteration].cur_progress[index].from.show_param_btn = element.show_param_btn
+            },
+
             playNegativeTone(message){
                 //This method is used to change pitch
                 pitch = 0.9
@@ -264,9 +349,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         /*Text to speech
                 link used: https://usefulangle.com/post/98/javascript-text-to-speech
             */
-              //return
+
+
+
+
               console.log('pitch',pitch);
               if ('speechSynthesis' in window) {
+
                 let speech = new SpeechSynthesisUtterance(str);
                 speech.lang = this.language;
                 speech.pitch = pitch;
@@ -656,8 +745,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                                complete_prg[cidx].from.completed = true
                                this.incomingBaseLevelNetwork[cidx].state.completed = true
                             }
-
-
                         }
             },
 

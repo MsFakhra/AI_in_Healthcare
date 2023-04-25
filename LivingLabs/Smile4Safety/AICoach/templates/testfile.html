@@ -1,8 +1,87 @@
+<!--
+State Behavior
+
+1.	For the front-end:
+a.	States with no incoming states are considered as Initial states. They will be shown on the interface, when the protocol execution is started.
+b.	No mental state will be shown on the frontend (to the doctors)
+c.	User is allowed to click a state if it is observed, and it is marked as ‘Observed’. State observation will be received from backend.
+2.	For the backend – server side:
+a.	A state receives data continuously and updates its values continuously.
+b.	A state will be observed if it has a value (let’s say if value > 0.2)
+c.	If state has a value (or observed), then it is shown on the interface.
+
+
+Decisive Behaviors
+
+If a causal state is leading to multiple states, then user has to decide to choose ‘Observed’ from them:
+3.	For the front-end:
+a.	When user is offered with multiple states which are observed, user marks any(one) of them as ‘Observed’. Then the rest of the states can be considered as not ‘Not Observed’
+b.	Do we have to limit him to choose only one state as observed? I think not.
+c.	A ‘Not Observed’ state cant lead to the ‘Observed’ state(s).
+d.	If there are other states (along with ‘Not Observed’ state) leading to a state, still the process will continue.
+e.	If the further state(s) are not observed, then they will not be shown on the interface
+4.	For the backend:
+a.	The state values for the observed states are taken into account after user clicks ‘Observed’, and for the rest of the states the value is set constant or 0 and marked as ‘Not Observed’
+b.	If there is a ‘Not Observed’ state (i.e., value = 0), we skip the states that follow this particular state for the dynamics of data. what can be good 0 or constant?
+-->
 {% extends "base.html" %}
 
 {% block page_content %}
-<div class="two-columns-grid">
-    <div>1</div>
-    <div>2</div>
+
+<!--csrftoken is not defined-->
+{% csrf_token %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+
+
+<h1> Model Monitoring</h1>
+
+<div  x-data="monitoringProgress" class="w-full" x-data="{classes: [
+                            {
+                            room: 'online',
+                            id: 1,
+                            },
+                            {
+                            room: 'in class',
+                            id: 2,
+                            }
+                            ]}">
+
+    <template x-for="d in data" :key="d.id">
+    <input type="text" x-text="d.room" :value="d.room"></input>
+    </template>
+    <button id="btn" type="button"
+                                            @click="Swap()"
+                                            class="button button4"
+            :class="{ 'bg-green-500':  (bstate.completed)}"> HELLO</button>
+
+
+
 </div>
+<!--{{ data}}-->
+<script>
+document.addEventListener('alpine:init', () => {
+        Alpine.data('monitoringProgress', () => ({
+        data: {},
+        init(){
+            this.data = [{room: 'online',
+                                id: 1,
+                                },
+                                {
+                                room: 'in class',
+                                id: 2,
+                                }
+                                ]
+        },
+
+        Swap(){
+            temp = this.data[0]
+            this.data[0] = this.data[1]
+            this.data[1] = temp
+        }
+        }))
+        })
+</script>
+
 {% endblock %}
