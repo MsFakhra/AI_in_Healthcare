@@ -57,7 +57,7 @@ def main(request):
     #return messagespecification(request)
     #return modelediting(request)
 
-    #return render(request, 'testfile.html', {})
+    return render(request, 'testfile.html', {})
     return monitoring(request)
 
     #return createmodel(request)

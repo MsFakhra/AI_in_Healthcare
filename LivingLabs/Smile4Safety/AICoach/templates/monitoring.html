@@ -93,7 +93,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     </div>
     <div>
         <span>Please select the language</span>
-        <div id="google_translate_element" x-model="language" align="right"></div>
+        <div id="google_translate_element"> ghjhg</div>
     </div>
 </div>
 <!--{{ data}}-->
@@ -874,6 +874,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                  // 4. initialization of completeProgressOfNetwork
                  this.initializeProgress()
+
+                 //5. setting the language
+                 userLang = navigator.language || navigator.userLanguage;
+                 //new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+
             },//init
 
             initializeProgress()
