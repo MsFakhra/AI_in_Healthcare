@@ -42,7 +42,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-<h1> Model Monitoring</h1>
+<h1> <b>Model Monitoring</b></h1>
 
 <div class="three-columns-grid" x-data="monitoringProgress" x-init="startTimer();">
 <div>
@@ -57,11 +57,16 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             <tr>
                                 <td>
                                     <div x-show="true"> <!--"!bstate.is_internal"-->
-                                        <button id="bstate.id" x-text="bstate.id+':'+bstate.name"  type="button"
+                                        <button id="bstate.id" x-text="bstate.name + ':' + bstate.user_name"  type="button"
                                             @click="recordFromAction(cur_prg);"
                                             class="button button4"
-                                            :class="{ 'bg-green-500':  (bstate.completed)}">
-                                            <!--:disabled="!bstate.monitoringstate">-->
+                                            :class="{ 'bg-green-500':  (bstate.completed),
+                                                    'bg-yellow-500':  (bstate.to_be_completed)
+
+                                            }">
+
+                                            <!-- bstate.id+' '+
+                                            :disabled="!bstate.monitoringstate">-->
                                         </button>
                                     </div>
                                 </td>
@@ -85,16 +90,15 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
     <div>
-    <h1>Status and Log</h1>
-    <p>
-        <!--<span x-text="status_log"></span>-->
+        <div style="position: sticky; top: 0;">
+        <h1><b>Status and Log</b></h1>
         <span x-html="status_log.replaceAll('\n', '<br>')"></span>
-    </p>
+        </div>
     </div>
-    <div>
+    <!--<div>
         <span>Please select the language</span>
         <div id="google_translate_element"> ghjhg</div>
-    </div>
+    </div>-->
 </div>
 <!--{{ data}}-->
 
@@ -135,15 +139,16 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             /////////////////////////////////////////////////////////////////
             // Event handlers
 
+
             recordFromAction(cur_prg){
             /*
                     This function is called when a from element is clicked. Functionality is implemented for the for elements of the element cur_prg.
                     Input: current progress (cur_prg)
                     Pre-Processing: States shown are not internal states. The states are either
                         1. initial states, or
-                        2. observed states
+                        2. observed states (grey)
                     Processing:
-                        1. state is marked as completed, if it is not completed before and it is initial state
+                        1. state is marked as completed (green), if it is not completed before and it is initial state
                         2. if 1 is not satisfied then all incoming connections are checked for completion and then it is marked as completed
 
                     Output: 1. State is marked as completed.
@@ -154,6 +159,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 //1.a. set the state as completed
                 // preliminary checks
                 //1.a.a. if the state is already observedd
+
+                message = from_elem.user_name
 
                 if(from_elem.completed)
                 {
@@ -172,15 +179,15 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         this.incomingBaseLevelNetwork[idx].state.observed = true
                         this.incomingBaseLevelNetwork[idx].state.completed = true
                    }
-                   this.status_log = 'Je hebt zojuist' + from_elem.name + ' afgerond\n'
+                   this.status_log = 'Je hebt zojuist ' + message + ' afgerond\n'
                    this.playPositiveTone(this.status_log)
                 }
                 else
                 {
-                   incoming_status = this.isIncomingComplete(from_elem)
+                   incoming_status = this.isIncomingStates(from_elem)
                    //console.log('incoming_status',from_elem, incoming_status)
                    //then state is marked as complete otherwise it is checked for loops and notifications are sent
-                    //if incoming status is completed from all states (i.e., final_status == true)
+                   //if incoming status is completed from all states (i.e., final_status == true)
 
                     final_status = false
 
@@ -198,7 +205,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                    if(final_status == true)
                    {
                       from_elem.completed = true
-                      this.status_log = 'Je hebt zojuist ' + from_elem.name + ' afgerond \n'
+                      this.status_log = 'Je hebt zojuist ' + message + ' afgerond \n'
                       this.playPositiveTone(this.status_log)
                    }
                    else
@@ -221,6 +228,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                             //console.log('isloop',isloop,incoming_status[i],from_elem)
                             if(isloop == true)
                             {
+                                //TO-DO: we can ensure if one state of loop is completed
                                 loop_incomplete.push(incoming_status[i])
                             }
                             else
@@ -230,20 +238,25 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         }
                       }
                       //check if the rest of the states are complete then make it complete
+                      //console.log('incomplete',incomplete)
                       if(loop_incomplete.length > 0 && incomplete.length == 0)
                       {
                         from_elem.completed = true
-                        console.log('from_elem',from_elem)
-                        this.status_log = 'Je hebt zojuist ' + from_elem.name + ' afgerond. \n'
+                        //console.log('from_elem',from_elem)
+                        this.status_log = 'Je hebt zojuist ' + message + ' afgerond. \n'
                         this.playPositiveTone(this.status_log)
                       }
                       else
                       {
-                        console.log('from_elem',from_elem)
+                        //console.log('from_elem',from_elem)
+
                         for(var i = 0; i < incomplete.length; i++)
                         {
-                            this.status_log = this.status_log + ' ' + incomplete[i].name
+                            multiple_state_message = incomplete[i].user_name
+                            incomplete[i].to_be_completed = true
+                            this.status_log = this.status_log + ' ' + multiple_state_message
                                               + ' is nog niet compleet. \n'
+                            //console.log('incomplete elem',incomplete[i])
                         }
                         if(incomplete.length == 1)
                             this.status_log = this.status_log + 'Ben je vergeten op de staat te klikken? \n'
@@ -257,9 +270,6 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 {
                     this.swapElements(from_elem)
                 }
-                //console.log('status_log: ',this.status_log)
-
-
             },
 
             //////////////////////////supporting methods
@@ -275,7 +285,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     found_Id = cur_prg.findIndex(e => e.from.completed == false);
                     if(found_Id > -1)   //finding index of first element which is not completed
                     {
-                        console.log('element not completed at index',found_Id)//this.curProgress[this.iteration].cur_progress[found_Id],
+                        //console.log('element not completed at index',found_Id)//this.curProgress[this.iteration].cur_progress[found_Id],
                         if (idx > found_Id) // this means it needs swapping
                         {
 
@@ -309,7 +319,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                 if(element.is_internal)
                 {
-                    console.log('Copying',this.curProgress[this.iteration].cur_progress[index].from,element)
+                    //console.log('Copying',this.curProgress[this.iteration].cur_progress[index].from,element)
                     this.curProgress[this.iteration].cur_progress[index].from.completed = true
                 }
                 else
@@ -349,11 +359,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         /*Text to speech
                 link used: https://usefulangle.com/post/98/javascript-text-to-speech
             */
-
-
-
-
-              console.log('pitch',pitch);
+              //console.log('pitch',pitch);
               if ('speechSynthesis' in window) {
 
                 let speech = new SpeechSynthesisUtterance(str);
@@ -384,7 +390,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             checkforLoop(stateinfo,from_elem){
                 //This function checks for loop, and returns true or false
 
-                console.log('stateinfo', stateinfo)
+                //console.log('stateinfo', stateinfo)
                 in_connection = stateinfo.in_connection
                 idx = in_connection.findIndex(e => e.value == from_elem.id)
                 if(idx > -1)
@@ -402,7 +408,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 }, 10000);
             },
 
-            isIncomingComplete(from_elem)
+            isIncomingStates(from_elem)
             {   //TO-DO: Check Incoming Connections
                 /*  This function checks all incoming states,
                     if all states are completed. It returns a structure with state name and status.
@@ -564,8 +570,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     last_progress: this.completeProgressOfNetwork
                 }
 
-                console.log('Before sendStatusUpdate')
-                console.log('sending data to server', out_data)
+                //console.log('Before sendStatusUpdate')
+                //console.log('sending data to server', out_data)
 
                 axios({
                 method: 'post',
@@ -617,7 +623,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     response = await axios.get(data_url);
                     //console.log('Before updation - data recieved',response.data)
                     rec_model_info = JSON.parse(response.data)    // model info received similar to the sent
-                    console.log('Before updation - model information recieved',rec_model_info)
+                    //console.log('Before updation - model information recieved',rec_model_info)
 
                     r_last_progress = rec_model_info.last_progress[this.iteration]
                     base_level = rec_model_info.base_level
@@ -666,7 +672,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                         //still, if all incoming elements are completed then show element in progress
 
-                        incoming_status = this.isIncomingComplete(from_elem)
+                        incoming_status = this.isIncomingStates(from_elem)
                         //console.log('incoming_status',from_elem.name,incoming_status)
 
                        if(incoming_status.length > 0)
@@ -875,6 +881,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                  // 4. initialization of completeProgressOfNetwork
                  this.initializeProgress()
 
+
                  //5. setting the language
                  userLang = navigator.language || navigator.userLanguage;
                  //new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
@@ -925,7 +932,7 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     this.curProgress[this.iteration] = {cur_progress}
                     this.remProgress[this.iteration] = {rem_progress}
                 }
-
+                //console.log('progresses: complete', this.completeProgressOfNetwork)
             },
 
             generateToElements(toelems){
@@ -1185,6 +1192,11 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     //convert strings if any to boolean
                     var completed = (element.completed === 'true');
                     connection_weights = this.adjustConnectionWeights(element.connection_weights)
+                    //if state is classified as negative, then warning color should be shown instead
+                    warn = false
+                    if(element.sentiment_lbl != "Positive")
+                        warn = true
+
 
                     elem = {
                     id: element.id,
@@ -1203,7 +1215,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     is_internal:element.is_internal,
                     values:element.values,
                     initial_state: element.initial_state,
-                    fout: false
+                    warning: warn,
+                    to_be_completed: false
                     }
 
                     return elem
@@ -1226,7 +1239,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     is_internal:false,
                     values:[],
                     initial_state:false,
-                    fout: false
+                    warning: false,
+                    to_be_completed:false
                 }
                 return elem
           },

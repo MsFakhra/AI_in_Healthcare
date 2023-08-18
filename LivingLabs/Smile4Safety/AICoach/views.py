@@ -57,11 +57,9 @@ def main(request):
     #return messagespecification(request)
     #return modelediting(request)
 
-    return render(request, 'testfile.html', {})
+    #return render(request, 'testfile.html', {})
     return monitoring(request)
 
-    #return createmodel(request)
-    #return eventbasedmonitoring(request)
     return JsonResponse({"status": 'END OK'})
 
 ##### Model specification with reference to world states
@@ -73,8 +71,8 @@ def monitoring(request):
         The states which are actionable have a message associated at the successful completion of the action.
     '''
     #fetches the last model monitoring_state
-    modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-    #modelobj = ModelSpecification.objects.get(model_id=15)
+    #modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
+    modelobj = ModelSpecification.objects.get(model_id=16)
 
 
     specs = modelobj.model_specification
@@ -290,10 +288,12 @@ def analyzesentiments(list_model):
         '''
         sentiment = getsentiment(name)
 
+        '''
+        #If individual messages need monitoring then place it, otherwise not needed.
         if sentiment['label'] == 'Positive':
             message = state['message']
             sentiment = getsentiment(message)
-
+        '''
         state['sentiment_lbl'] = sentiment['label']
 
     base_model['states'] = states

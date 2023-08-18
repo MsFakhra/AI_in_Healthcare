@@ -1,69 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Translate App</title>
+    <meta charset="UTF-8">
+    <title>Text-to-Speech with Alpine.js</title>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.js" defer></script>
 </head>
 <body>
-    <div x-data="translateApp()">
-        <h1>Translate App</h1>
-
-        <div>
-            <label for="text">Text to translate:</label>
-            <input type="text" id="text" x-model="text">
-        </div>
-
-        <div>
-            <button @click="translate()">Translate</button>
-        </div>
-
-        <div x-show="translation">
-            <h2>Translation:</h2>
-            <p x-text="translation"></p>
-        </div>
+    <div x-data="speechSynthesis" x-init="">
+        <input type="text" x-model="text">
+        <button x-on:click="alert('hello');speak()" :disabled="!text">Speak</button>
     </div>
-
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=translate"></script>
-
     <script>
-        function translateApp() {
-            return {
-                text: '',
-                translation: '',
+        document.addEventListener('alpine:init', () => {
+        Alpine.data('speechSynthesis', () => ({
 
-                translate() {
-
-                    this.translation = new google.translate.TranslateElement({pageLanguage: 'en'}, this.text);
-
-
-                    return
-                    const apiKey = 'YOUR_GOOGLE_TRANSLATE_API_KEY';
-                    const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
-
-
-
-                    const params = new URLSearchParams();
-                    params.append('q', this.text);
-                    params.append('source', 'en');
-                    params.append('target', 'nl');
-
-                    fetch(url, {
-                        method: 'POST',
-                        body: params,
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data)
-                        if (data.data && data.data.translations && data.data.translations.length > 0) {
-                            this.translation = data.data.translations[0].translatedText;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
-                }
-            };
+        speak() {
+                    alert('Speak')
+                    //speakText(this.$parent.text);
+                },
+        speakText(text) {
+            const speechSynthesis = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(text);
+            speechSynthesis.speak(utterance);
         }
+
+        }))
+        })
     </script>
 </body>
 </html>
