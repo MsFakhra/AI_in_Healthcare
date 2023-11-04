@@ -166,7 +166,7 @@ def modelediting(request):
 
     #loading the model
     modelobj = ModelSpecification.objects.filter().order_by('-model_id')[0]
-    #modelobj = ModelSpecification.objects.get(model_id=10)
+    #modelobj = ModelSpecification.objects.get(model_id=16)
 
     specs = modelobj.model_specification
 

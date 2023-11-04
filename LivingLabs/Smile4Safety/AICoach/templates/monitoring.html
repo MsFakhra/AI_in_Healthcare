@@ -84,8 +84,10 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             </div>
         </template>
     </div>
-
     <!--Base Network Model-->
+    <div>
+        <button x-on:click="saveProgress()" id="saveProgress" class="btn btn-success">Save Progress</button>
+    </div>
 </div>
 
 
@@ -160,7 +162,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 // preliminary checks
                 //1.a.a. if the state is already observedd
 
-                message = from_elem.user_name
+                //message = from_elem.user_name
+                message = from_elem.name
 
                 if(from_elem.completed)
                 {
@@ -252,7 +255,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
                         for(var i = 0; i < incomplete.length; i++)
                         {
-                            multiple_state_message = incomplete[i].user_name
+                            //multiple_state_message = incomplete[i].user_name
+                            multiple_state_message = incomplete[i].name
                             incomplete[i].to_be_completed = true
                             this.status_log = this.status_log + ' ' + multiple_state_message
                                               + ' is nog niet compleet. \n'
@@ -266,21 +270,101 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                       }
                    }
                 }
+
+                //getting to elems
+                to_elems = cur_prg.to
+                //swapping the elements to the top, so that users can have a better view that which state is complete
                 if(from_elem.completed)
                 {
-                    this.swapElements(from_elem)
+                    //storing time stamp information
+                    var time_stamp = new Date()
+                    from_elem.time_stamp = time_stamp
+
+                    to_elems = cur_prg.to
+                    this.swapProgressElement(cur_prg)
+                    //check if it is the last element
+                    //console.log('to_elems',to_elems)
+                    for(var i = 0; i < to_elems.length; i++)
+                    {
+                        to_elem = to_elems[i]
+                        //console.log('to elem', to_elem.name)
+                        if(to_elem.id=="")
+                        {
+                            alert('protocol completed - please check the log')
+                            saveProgress()
+                        }
+                    }
+
                 }
             },
 
             //////////////////////////supporting methods
 
-            swapElements(from_elem){
-                //this function swaps the recently completed element with the first observed element
+            saveProgress()
+            {
+                //this saves the current progress and generates the log
 
-                idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == from_elem.id)
+
+                cur_progress_at_iteration = this.curProgress[this.iteration].cur_progress
+                is_first_element_completed = cur_progress_at_iteration[0].from.completed
+                if(!is_first_element_completed)
+                {
+                    alert('progress is empty. Please complete the protocol')
+                    return
+                }
+
+                //data to be recorded
+                data = [{
+                iteration:this.iteration,
+                date: new Date()}
+                ]
+
+                console.log(cur_progress_at_iteration)
+
+                for(var i = 0; i < cur_progress_at_iteration.length; i++)
+                {
+                    element = cur_progress_at_iteration[i].from
+                    elem = {
+                        id: element.id,
+                        name: element.name,
+                        user_name: element.user_name,
+                        completed: element.completed,
+                        time_stamp:element.time_stamp
+                    }
+                    data.push(elem)
+                }
+
+
+                //console.log(data)
+                prg_data = JSON.stringify(data)
+                const text_to_BLOB = new Blob([prg_data], { type: 'text/plain' });
+                const file_name = `precord_${(JSON.stringify(new Date()))}.txt`
+
+                let newLink = document.createElement("a");
+                newLink.download = file_name;
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(text_to_BLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(text_to_BLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+
+
+            },
+            swapProgressElement(prg_elem){
+                //this function swaps the progress element
+                prg_from_elem = prg_elem.from
+                //console.log('swapProgressElement - from element', prg_from_elem)
+
+                idx = this.curProgress[this.iteration].cur_progress.findIndex(e => e.from.id == prg_from_elem.id)
                 if(idx > -1)    //finding element in current progress
                 {
-                    //find the first observed element
+                    //currently displayed progress
                     cur_prg = this.curProgress[this.iteration].cur_progress
                     found_Id = cur_prg.findIndex(e => e.from.completed == false);
                     if(found_Id > -1)   //finding index of first element which is not completed
@@ -288,30 +372,30 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         //console.log('element not completed at index',found_Id)//this.curProgress[this.iteration].cur_progress[found_Id],
                         if (idx > found_Id) // this means it needs swapping
                         {
-
+                            //first from element that is not completed
                             a_from = this.createNewElement(this.curProgress[this.iteration].cur_progress[found_Id].from)
                             a_from.observed = true
                             if(this.curProgress[this.iteration].cur_progress[found_Id].from.is_internal){
                                 a_from.completed = true
                                 //console.log('Internal element',this.curProgress[this.iteration].cur_progress[found_Id].from.name, a_from)
                             }
+                            var a_to =  this.curProgress[this.iteration].cur_progress[found_Id].to
 
                             b_from = this.createNewElement(this.curProgress[this.iteration].cur_progress[idx].from)
                             b_from.observed = true
                             b_from.completed = true
+                            var b_to =  this.curProgress[this.iteration].cur_progress[idx].to
 
-                            this.copyElement(b_from,found_Id)
-                            this.copyElement(a_from,idx)
+                            this.copyElements(b_from,b_to,found_Id)
+                            this.copyElements(a_from,a_to, idx)
                         }
-
-                        return
                     }
                 }
-                return
             },
 
-            copyElement(element,index)
-            {
+            copyElements(element, to_elem_arr,index){
+                // this function copies the elements to the current progress (i.e., the from element and the to element)
+                //copying from
                 this.curProgress[this.iteration].cur_progress[index].from.id = element.id
                 this.curProgress[this.iteration].cur_progress[index].from.name = element.name
                 this.curProgress[this.iteration].cur_progress[index].from.initial_state = element.initial_state
@@ -321,10 +405,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 {
                     //console.log('Copying',this.curProgress[this.iteration].cur_progress[index].from,element)
                     this.curProgress[this.iteration].cur_progress[index].from.completed = true
+                    this.curProgress[this.iteration].cur_progress[index].from.to_be_completed = true
+
                 }
                 else
                 {
                     this.curProgress[this.iteration].cur_progress[index].from.completed = element.completed
+                    this.curProgress[this.iteration].cur_progress[index].from.to_be_completed = element.to_be_completed
                 }
 
                 this.curProgress[this.iteration].cur_progress[index].from.observed = element.observed
@@ -340,7 +427,13 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 this.curProgress[this.iteration].cur_progress[index].from.message = element.message
                 this.curProgress[this.iteration].cur_progress[index].from.sentiment_lbl = element.sentiment_lbl
                 this.curProgress[this.iteration].cur_progress[index].from.show_param_btn = element.show_param_btn
+
+                //copying to elements
+                this.curProgress[this.iteration].cur_progress[index].to = to_elem_arr
+
+
             },
+
 
             playNegativeTone(message){
                 //This method is used to change pitch
@@ -932,7 +1025,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     this.curProgress[this.iteration] = {cur_progress}
                     this.remProgress[this.iteration] = {rem_progress}
                 }
-                //console.log('progresses: complete', this.completeProgressOfNetwork)
+                console.log('progresses: complete', this.completeProgressOfNetwork)
+                console.log('progresses: cur', this.curProgress)
             },
 
             generateToElements(toelems){
@@ -1216,7 +1310,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     values:element.values,
                     initial_state: element.initial_state,
                     warning: warn,
-                    to_be_completed: false
+                    to_be_completed: element.to_be_completed,
+                    time_stamp:''
                     }
 
                     return elem
@@ -1240,7 +1335,8 @@ const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     values:[],
                     initial_state:false,
                     warning: false,
-                    to_be_completed:false
+                    to_be_completed:false,
+                    time_stamp:''
                 }
                 return elem
           },

@@ -37,6 +37,6 @@ urlpatterns = [
 
     path('getstatestatus/', views.getstatestatus, name="getstatestatus"),
 
-
+    #path('url/', views.home, name='home'),
 
 ]
